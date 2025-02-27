@@ -1,4 +1,3 @@
-Arquivo: index.html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -6,6 +5,7 @@ Arquivo: index.html
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoHeart MVP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Adicionando bibliotecas para PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -289,8 +289,8 @@ Arquivo: index.html
         // Usuários de teste para o MVP
         // Em uma versão real, isso seria armazenado no servidor
         const users = [
-            { username: "gtozato", password: "gus36avo", name: "Gustavo Tozato" },
-            { username: "mariapatricia", password: "ziggy2015", name: "Dra. Maria Patricia" },
+            { username: "dra.ana", password: "123456", name: "Dra. Ana Cardiologista" },
+            { username: "dr.carlos", password: "123456", name: "Dr. Carlos Medeiros" },
             { username: "admin", password: "admin", name: "Administrador" }
         ];
 
@@ -311,28 +311,6 @@ Arquivo: index.html
             conclusao: "Ecocardiograma dentro dos padrões de normalidade para idade e sexo."
         };
 
-        // Elementos DOM
-        const loginContainer = document.getElementById('loginContainer');
-        const appContainer = document.getElementById('appContainer');
-        const loginButton = document.getElementById('loginButton');
-        const logoutButton = document.getElementById('logoutButton');
-        const loginError = document.getElementById('loginError');
-        const currentUserSpan = document.getElementById('currentUser');
-        const recordButton = document.getElementById('recordButton');
-        const transcriptBox = document.getElementById('transcript');
-        const editButton = document.getElementById('editButton');
-        const saveButton = document.getElementById('saveButton');
-        const previewButton = document.getElementById('previewButton');
-        const timerElement = document.getElementById('timer');
-        const sectionSelect = document.getElementById('currentSection');
-        const editTranscript = document.getElementById('editTranscript');
-        const editSectionSelect = document.getElementById('editSectionSelect');
-        const applyEdit = document.getElementById('applyEdit');
-        const statusIndicator = document.getElementById('statusIndicator');
-        const sectionTags = document.querySelectorAll('.section-tag');
-        const laudoPreview = document.getElementById('laudoPreview');
-        const generatePdfButton = document.getElementById('generatePdfButton');
-        
         // Funções de autenticação
         function login() {
             const username = document.getElementById('username').value;
@@ -343,14 +321,14 @@ Arquivo: index.html
             if (user) {
                 // Login bem-sucedido
                 currentUser = user;
-                currentUserSpan.textContent = user.name;
+                document.getElementById('currentUser').textContent = user.name;
                 
                 // Armazenar no sessionStorage (não é seguro para produção, apenas para MVP)
                 sessionStorage.setItem('currentUser', JSON.stringify(user));
                 
                 // Mostrar o aplicativo
-                loginContainer.style.display = 'none';
-                appContainer.style.display = 'block';
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
                 
                 // Inicializar o reconhecimento de voz
                 initSpeechRecognition();
@@ -359,9 +337,9 @@ Arquivo: index.html
                 initializeTemplate();
             } else {
                 // Login falhou
-                loginError.style.display = 'block';
+                document.getElementById('loginError').style.display = 'block';
                 setTimeout(() => {
-                    loginError.style.display = 'none';
+                    document.getElementById('loginError').style.display = 'none';
                 }, 3000);
             }
         }
@@ -371,8 +349,8 @@ Arquivo: index.html
             sessionStorage.removeItem('currentUser');
             
             // Voltar à tela de login
-            loginContainer.style.display = 'block';
-            appContainer.style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('appContainer').style.display = 'none';
             
             // Parar gravação se estiver ativa
             if (isRecording) {
@@ -396,11 +374,11 @@ Arquivo: index.html
             const savedUser = sessionStorage.getItem('currentUser');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
-                currentUserSpan.textContent = currentUser.name;
+                document.getElementById('currentUser').textContent = currentUser.name;
                 
                 // Mostrar o aplicativo
-                loginContainer.style.display = 'none';
-                appContainer.style.display = 'block';
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
                 
                 // Inicializar o reconhecimento de voz
                 initSpeechRecognition();
@@ -431,8 +409,8 @@ Arquivo: index.html
                 recognition.onstart = function() {
                     isRecording = true;
                     updateUI();
-                    statusIndicator.textContent = 'Gravando';
-                    statusIndicator.className = 'badge bg-danger';
+                    document.getElementById('statusIndicator').textContent = 'Gravando';
+                    document.getElementById('statusIndicator').className = 'badge bg-danger';
                 };
 
                 recognition.onresult = function(event) {
@@ -462,15 +440,15 @@ Arquivo: index.html
                     if (interimTranscript) {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = `<p><em>${interimTranscript}</em></p>`;
-                        transcriptBox.appendChild(tempDiv);
-                        transcriptBox.scrollTop = transcriptBox.scrollHeight;
+                        document.getElementById('transcript').appendChild(tempDiv);
+                        document.getElementById('transcript').scrollTop = document.getElementById('transcript').scrollHeight;
                     }
                 };
 
                 recognition.onerror = function(event) {
                     console.error('Erro no reconhecimento de voz:', event.error);
-                    statusIndicator.textContent = 'Erro';
-                    statusIndicator.className = 'badge bg-warning';
+                    document.getElementById('statusIndicator').textContent = 'Erro';
+                    document.getElementById('statusIndicator').className = 'badge bg-warning';
                 };
 
                 recognition.onend = function() {
@@ -479,22 +457,23 @@ Arquivo: index.html
                         recognition.start();
                     } else {
                         stopTimer();
-                        statusIndicator.textContent = 'Parado';
-                        statusIndicator.className = 'badge bg-secondary';
+                        document.getElementById('statusIndicator').textContent = 'Parado';
+                        document.getElementById('statusIndicator').className = 'badge bg-secondary';
                     }
                 };
 
-                statusIndicator.textContent = 'Pronto';
-                statusIndicator.className = 'badge bg-success';
+                document.getElementById('statusIndicator').textContent = 'Pronto';
+                document.getElementById('statusIndicator').className = 'badge bg-success';
             } else {
                 alert('Seu navegador não suporta reconhecimento de voz. Recomendamos usar o Chrome ou Edge.');
-                statusIndicator.textContent = 'Não suportado';
-                statusIndicator.className = 'badge bg-danger';
+                document.getElementById('statusIndicator').textContent = 'Não suportado';
+                document.getElementById('statusIndicator').className = 'badge bg-danger';
             }
         }
 
         // Atualizar a visualização da transcrição atual
         function updateTranscriptView() {
+            const transcriptBox = document.getElementById('transcript');
             transcriptBox.innerHTML = '';
             
             // Mostrar apenas a transcrição da seção atual
@@ -570,11 +549,14 @@ Arquivo: index.html
         function updateTimerDisplay() {
             const minutes = Math.floor(seconds / 60);
             const secs = seconds % 60;
-            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
         // Atualizar a interface com base no estado de gravação
         function updateUI() {
+            const recordButton = document.getElementById('recordButton');
+            const sectionSelect = document.getElementById('currentSection');
+            
             if (isRecording) {
                 recordButton.classList.add('btn-danger');
                 recordButton.classList.remove('btn-primary');
@@ -639,7 +621,7 @@ Arquivo: index.html
                 </div>
             `;
             
-            laudoPreview.innerHTML = laudoHtml;
+            document.getElementById('laudoPreview').innerHTML = laudoHtml;
             
             const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
             previewModal.show();
@@ -672,8 +654,21 @@ Arquivo: index.html
             // Linha divisória
             doc.line(20, 70, 190, 70);
             
-            // Preparar conteúdo do laudo
+            // Adicionar cada seção do laudo
             let yPos = 80;
             
-            // Adicionar cada seção do laudo
             for (const section in templateDefaults) {
+                const sectionName = getSectionDisplayName(section);
+                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                    ? fullTranscript[section].trim() 
+                    : templateDefaults[section];
+                
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${sectionName}:`, 20, yPos);
+                doc.setFont(undefined, 'normal');
+                
+                yPos += 10;
+                
+                // Quebrar o texto em linhas
+                const contentLines
