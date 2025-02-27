@@ -6,10 +6,6 @@
     <title>EcoHeart - Laudos de Ecocardiografia</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Firebase Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <!-- PDF Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -34,14 +30,12 @@
             text-align: center;
         }
         .recording-indicator {
-            width: 20px;
-            height: 20px;
+            display: inline-block;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             background-color: red;
-            display: inline-block;
-            margin-right: 10px;
-        }
-        .pulse {
+            margin-right: 5px;
             animation: pulse-animation 1.5s infinite;
         }
         @keyframes pulse-animation {
@@ -67,19 +61,6 @@
             padding: 10px;
             background-color: white;
         }
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
-        }
-        .app-container {
-            display: none;
-        }
-        .login-form {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
         .template-field {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
@@ -87,10 +68,6 @@
         .template-field.empty {
             color: #aaa;
             font-style: italic;
-        }
-        .hospital-logo {
-            max-height: 60px;
-            margin-bottom: 10px;
         }
         .report-list {
             max-height: 400px;
@@ -107,85 +84,28 @@
 </head>
 <body>
     <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
         <div class="spinner-container">
             <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-2" id="loadingMessage">Carregando...</p>
         </div>
     </div>
 
-    <!-- Tela de Login -->
-    <div id="loginContainer" class="login-container">
-        <div class="text-center mb-4">
-            <h2 class="h3 text-primary">EcoHeart</h2>
-            <p class="text-muted">Sistema de Laudos de Ecocardiografia</p>
-        </div>
-        <div class="login-form">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" placeholder="seu.email@exemplo.com">
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Senha</label>
-                <input type="password" class="form-control" id="password" placeholder="Sua senha">
-            </div>
-            <div class="d-grid gap-2">
-                <button id="loginButton" class="btn btn-primary">Entrar</button>
-                <button id="registerButton" class="btn btn-outline-secondary">Criar Conta</button>
-            </div>
-            <div id="loginError" class="text-danger mt-3 text-center" style="display: none;">
-                Erro ao fazer login. Verifique suas credenciais.
-            </div>
-        </div>
-    </div>
-
-    <!-- Tela de Registro -->
-    <div id="registerContainer" class="login-container" style="display: none;">
-        <div class="text-center mb-4">
-            <h2 class="h3 text-primary">Criar Conta</h2>
-            <p class="text-muted">Preencha seus dados para começar</p>
-        </div>
-        <div class="login-form">
-            <div class="mb-3">
-                <label for="registerName" class="form-label">Nome Completo</label>
-                <input type="text" class="form-control" id="registerName" placeholder="Dr. João Silva">
-            </div>
-            <div class="mb-3">
-                <label for="registerEmail" class="form-label">Email</label>
-                <input type="email" class="form-control" id="registerEmail" placeholder="seu.email@exemplo.com">
-            </div>
-            <div class="mb-3">
-                <label for="registerPassword" class="form-label">Senha</label>
-                <input type="password" class="form-control" id="registerPassword" placeholder="Escolha uma senha">
-            </div>
-            <div class="mb-3">
-                <label for="registerCRM" class="form-label">CRM</label>
-                <input type="text" class="form-control" id="registerCRM" placeholder="12345-SP">
-            </div>
-            <div class="d-grid gap-2">
-                <button id="createAccountButton" class="btn btn-primary">Criar Conta</button>
-                <button id="backToLoginButton" class="btn btn-outline-secondary">Voltar</button>
-            </div>
-            <div id="registerError" class="text-danger mt-3 text-center" style="display: none;">
-                Erro ao criar conta.
-            </div>
-        </div>
-    </div>
-
     <!-- Aplicativo Principal -->
-    <div id="appContainer" class="container py-4 app-container">
+    <div id="appContainer" class="container py-4">
         <header class="pb-3 mb-4 border-bottom">
             <div class="d-flex align-items-center">
                 <h1 class="h3 me-auto text-primary">EcoHeart</h1>
-                <span id="statusIndicator" class="badge bg-secondary">Offline</span>
-                <div class="ms-2 dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span id="currentUser">Médico</span>
+                <div class="d-flex align-items-center me-3">
+                    <span id="statusIndicator" class="badge bg-secondary">Offline</span>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-file-earmark-text"></i> Laudos
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="#" id="viewReportsButton">Meus Laudos</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" id="logoutButton">Sair</a></li>
+                        <li><a class="dropdown-item" href="#" id="viewReportsButton">Ver Laudos Salvos</a></li>
+                        <li><a class="dropdown-item" href="#" id="newReportButton">Novo Laudo</a></li>
                     </ul>
                 </div>
             </div>
@@ -292,8 +212,8 @@
         <!-- Conteúdo do Aplicativo - Lista de Laudos -->
         <div id="reportsListContainer" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4>Meus Laudos</h4>
-                <button id="newReportButton" class="btn btn-primary">
+                <h4>Laudos Salvos</h4>
+                <button id="newReportButtonAlt" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> Novo Laudo
                 </button>
             </div>
@@ -301,10 +221,7 @@
             <div class="card">
                 <div class="card-body">
                     <div id="reportsList" class="report-list">
-                        <div class="text-center py-5 text-muted">
-                            <div class="spinner-border spinner-border-sm" role="status"></div>
-                            <p class="mt-2">Carregando laudos...</p>
-                        </div>
+                        <!-- Laudos serão inseridos aqui -->
                     </div>
                 </div>
             </div>
@@ -367,6 +284,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                         <button type="button" class="btn btn-primary" id="generatePdfButton">Gerar PDF</button>
+                        <button type="button" class="btn btn-success" id="saveFromPreviewButton">Salvar Laudo</button>
                     </div>
                 </div>
             </div>
@@ -375,22 +293,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Configuração do Firebase
-        // SUBSTITUA ESTAS INFORMAÇÕES pelas suas configurações do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBVJLo67BboyuHFb6LLbEs_bn6tUIs_ml0",
-            authDomain: "ecoheart-3b810.firebaseapp.com",
-            projectId: "ecoheart-3b810",
-            storageBucket: "ecoheart-3b810.firebasestorage.app",
-            messagingSenderId: "628562934569",
-            appId: "1:628562934569:web:e047169365a39a50445538"
-        };
-
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
         // Variáveis globais
         let isRecording = false;
         let recognition = null;
@@ -398,8 +300,8 @@
         let seconds = 0;
         let fullTranscript = {};
         let currentSection = 'geral';
-        let currentUser = null;
         let currentReportId = null;
+        const doctorName = "Médico(a) Responsável"; // Pode ser personalizado depois
 
         // Modelo padrão com valores default para cada seção
         const templateDefaults = {
@@ -421,8 +323,6 @@
         // Referências DOM
         const domElements = {
             // Containers
-            loginContainer: document.getElementById('loginContainer'),
-            registerContainer: document.getElementById('registerContainer'),
             appContainer: document.getElementById('appContainer'),
             newReportContainer: document.getElementById('newReportContainer'),
             reportsListContainer: document.getElementById('reportsListContainer'),
@@ -430,32 +330,22 @@
             loadingMessage: document.getElementById('loadingMessage'),
             
             // Formulários e campos
-            email: document.getElementById('email'),
-            password: document.getElementById('password'),
-            registerName: document.getElementById('registerName'),
-            registerEmail: document.getElementById('registerEmail'),
-            registerPassword: document.getElementById('registerPassword'),
-            registerCRM: document.getElementById('registerCRM'),
             patientName: document.getElementById('patientName'),
             patientAge: document.getElementById('patientAge'),
             patientId: document.getElementById('patientId'),
             
             // Botões e controles
-            loginButton: document.getElementById('loginButton'),
-            registerButton: document.getElementById('registerButton'),
-            createAccountButton: document.getElementById('createAccountButton'),
-            backToLoginButton: document.getElementById('backToLoginButton'),
-            logoutButton: document.getElementById('logoutButton'),
             recordButton: document.getElementById('recordButton'),
             previewButton: document.getElementById('previewButton'),
             editButton: document.getElementById('editButton'),
             saveReportButton: document.getElementById('saveReportButton'),
+            saveFromPreviewButton: document.getElementById('saveFromPreviewButton'),
             viewReportsButton: document.getElementById('viewReportsButton'),
             newReportButton: document.getElementById('newReportButton'),
+            newReportButtonAlt: document.getElementById('newReportButtonAlt'),
             generatePdfButton: document.getElementById('generatePdfButton'),
             
             // Elementos de exibição
-            currentUser: document.getElementById('currentUser'),
             transcript: document.getElementById('transcript'),
             statusIndicator: document.getElementById('statusIndicator'),
             timer: document.getElementById('timer'),
@@ -465,10 +355,6 @@
             applyEdit: document.getElementById('applyEdit'),
             laudoPreview: document.getElementById('laudoPreview'),
             reportsList: document.getElementById('reportsList'),
-            
-            // Mensagens de erro
-            loginError: document.getElementById('loginError'),
-            registerError: document.getElementById('registerError'),
         };
 
         // Controle de carregamento
@@ -481,168 +367,13 @@
             domElements.loadingOverlay.style.display = 'none';
         }
 
-        // Funções de autenticação
-        function registerUser() {
-            const name = domElements.registerName.value.trim();
-            const email = domElements.registerEmail.value.trim();
-            const password = domElements.registerPassword.value;
-            const crm = domElements.registerCRM.value.trim();
-            
-            if (!name || !email || !password || !crm) {
-                domElements.registerError.textContent = "Preencha todos os campos";
-                domElements.registerError.style.display = 'block';
-                return;
-            }
-            
-            showLoading("Criando conta...");
-            
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    
-                    // Salvar informações adicionais do usuário
-                    return db.collection("users").doc(user.uid).set({
-                        name: name,
-                        email: email,
-                        crm: crm,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                })
-                .then(() => {
-                    hideLoading();
-                    // Redirecionar para o aplicativo
-                    showApp();
-                })
-                .catch((error) => {
-                    hideLoading();
-                    console.error("Erro ao registrar:", error);
-                    domElements.registerError.textContent = getErrorMessage(error);
-                    domElements.registerError.style.display = 'block';
-                });
-        }
-        
-        function loginUser() {
-            const email = domElements.email.value.trim();
-            const password = domElements.password.value;
-            
-            if (!email || !password) {
-                domElements.loginError.textContent = "Preencha email e senha";
-                domElements.loginError.style.display = 'block';
-                return;
-            }
-            
-            showLoading("Fazendo login...");
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    hideLoading();
-                    // Auth state observer irá redirecionar
-                })
-                .catch((error) => {
-                    hideLoading();
-                    console.error("Erro ao fazer login:", error);
-                    domElements.loginError.textContent = getErrorMessage(error);
-                    domElements.loginError.style.display = 'block';
-                });
-        }
-        
-        function logoutUser() {
-            showLoading("Saindo...");
-            
-            auth.signOut()
-                .then(() => {
-                    hideLoading();
-                    // Auth state observer irá redirecionar
-                })
-                .catch((error) => {
-                    hideLoading();
-                    console.error("Erro ao fazer logout:", error);
-                    alert("Erro ao fazer logout. Tente novamente.");
-                });
-        }
-        
-        // Função para traduzir mensagens de erro do Firebase
-        function getErrorMessage(error) {
-            const errorMessages = {
-                'auth/user-not-found': 'Usuário não encontrado.',
-                'auth/wrong-password': 'Senha incorreta.',
-                'auth/invalid-email': 'Email inválido.',
-                'auth/email-already-in-use': 'Este email já está sendo usado.',
-                'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
-                'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
-                'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.'
-            };
-            
-            return errorMessages[error.code] || error.message;
-        }
-        
-        // Observer de estado de autenticação
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Usuário está logado
-                currentUser = user;
-                
-                // Buscar informações adicionais do usuário
-                db.collection("users").doc(user.uid).get()
-                    .then((doc) => {
-                        if (doc.exists) {
-                            const userData = doc.data();
-                            domElements.currentUser.textContent = userData.name;
-                        } else {
-                            domElements.currentUser.textContent = user.email;
-                        }
-                        
-                        // Mostrar o aplicativo
-                        showApp();
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao buscar dados do usuário:", error);
-                        domElements.currentUser.textContent = user.email;
-                        showApp();
-                    });
-            } else {
-                // Usuário está deslogado
-                currentUser = null;
-                
-                // Mostrar tela de login
-                showLogin();
-            }
-        });
-
         // Funções de navegação
-        function showLogin() {
-            domElements.loginContainer.style.display = 'block';
-            domElements.registerContainer.style.display = 'none';
-            domElements.appContainer.style.display = 'none';
-            hideLoading();
-        }
-        
-        function showRegister() {
-            domElements.loginContainer.style.display = 'none';
-            domElements.registerContainer.style.display = 'block';
-            domElements.appContainer.style.display = 'none';
-        }
-        
-        function showApp() {
-            domElements.loginContainer.style.display = 'none';
-            domElements.registerContainer.style.display = 'none';
-            domElements.appContainer.style.display = 'block';
-            
-            // Inicializar o reconhecimento de voz
-            initSpeechRecognition();
-            
-            // Mostrar o container de novo laudo
-            showNewReport();
-            
-            // Preencher o modelo padrão
-            initializeTemplate();
-            
-            hideLoading();
-        }
-        
         function showNewReport() {
             domElements.newReportContainer.style.display = 'block';
             domElements.reportsListContainer.style.display = 'none';
+            
+            // Resetar estado para novo laudo
+            resetReportState();
         }
         
         function showReportsList() {
@@ -655,13 +386,570 @@
 
         // Inicializar o modelo padrão
         function initializeTemplate() {
-            // Limpar dados do laudo atual
+            // Se for um novo laudo, preencher com os valores padrão
+            if (Object.keys(fullTranscript).length === 0) {
+                for (const section in templateDefaults) {
+                    fullTranscript[section] = '';
+                }
+            }
+        }
+
+        // Resetar o estado para um novo laudo
+        function resetReportState() {
             fullTranscript = {};
             currentReportId = null;
             
-            // Se for um novo laudo, preencher com os valores padrão
-            for (const section in templateDefaults) {
-                fullTranscript[section] = '';
+            // Inicializar template
+            initializeTemplate();
+            
+            // Limpar campos do paciente
+            domElements.patientName.value = '';
+            domElements.patientAge.value = '';
+            domElements.patientId.value = '';
+            
+            // Atualizar a visualização da transcrição
+            updateTranscriptView();
+        }
+
+        // Inicializar o reconhecimento de voz se estiver disponível
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'pt-BR';
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    updateUI();
+                    domElements.statusIndicator.textContent = 'Gravando';
+                    domElements.statusIndicator.className = 'badge bg-danger';
+                };
+
+                recognition.onresult = function(event) {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        // Adicionar ao transcript completo
+                        if (!fullTranscript[currentSection]) {
+                            fullTranscript[currentSection] = '';
+                        }
+                        fullTranscript[currentSection] += ' ' + finalTranscript;
+                        
+                        // Atualizar a visualização
+                        updateTranscriptView();
+                    }
+
+                    // Mostrar resultados intermediários
+                    if (interimTranscript) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = `<p><em>${interimTranscript}</em></p>`;
+                        domElements.transcript.appendChild(tempDiv);
+                        domElements.transcript.scrollTop = domElements.transcript.scrollHeight;
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Erro no reconhecimento de voz:', event.error);
+                    domElements.statusIndicator.textContent = 'Erro';
+                    domElements.statusIndicator.className = 'badge bg-warning';
+                };
+
+                recognition.onend = function() {
+                    // Se ainda estiver gravando, reiniciar o reconhecimento
+                    if (isRecording) {
+                        recognition.start();
+                    } else {
+                        stopTimer();
+                        domElements.statusIndicator.textContent = 'Parado';
+                        domElements.statusIndicator.className = 'badge bg-secondary';
+                    }
+                };
+
+                domElements.statusIndicator.textContent = 'Pronto';
+                domElements.statusIndicator.className = 'badge bg-success';
+            } else {
+                alert('Seu navegador não suporta reconhecimento de voz. Recomendamos usar o Chrome ou Edge.');
+                domElements.statusIndicator.textContent = 'Não suportado';
+                domElements.statusIndicator.className = 'badge bg-danger';
+            }
+        }
+
+        // Atualizar a visualização da transcrição atual
+        function updateTranscriptView() {
+            const transcriptBox = domElements.transcript;
+            transcriptBox.innerHTML = '';
+            
+            // Mostrar apenas a transcrição da seção atual
+            if (fullTranscript[currentSection] && fullTranscript[currentSection].trim()) {
+                const contentDiv = document.createElement('div');
+                contentDiv.innerHTML = `<p>${fullTranscript[currentSection]}</p>`;
+                transcriptBox.appendChild(contentDiv);
+            } else {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.innerHTML = `<p class="text-muted">A transcrição aparecerá aqui enquanto você fala...</p>`;
+                transcriptBox.appendChild(emptyDiv);
             }
             
-            // Limpar campos do pac
+            transcriptBox.scrollTop = transcriptBox.scrollHeight;
+        }
+
+        // Obter nome de exibição para a seção
+        function getSectionDisplayName(sectionKey) {
+            const sectionMap = {
+                'geral': 'Geral',
+                'ventriculo_esquerdo': 'Ventrículo Esquerdo',
+                'atrio_esquerdo': 'Átrio Esquerdo',
+                'valvula_mitral': 'Válvula Mitral',
+                'ventriculo_direito': 'Ventrículo Direito',
+                'atrio_direito': 'Átrio Direito',
+                'valvula_tricuspide': 'Válvula Tricúspide',
+                'valvula_aortica': 'Válvula Aórtica',
+                'valvula_pulmonar': 'Válvula Pulmonar',
+                'aorta': 'Aorta',
+                'arteria_pulmonar': 'Artéria Pulmonar',
+                'pericardio': 'Pericárdio',
+                'conclusao': 'Conclusão'
+            };
+            return sectionMap[sectionKey] || sectionKey;
+        }
+
+        // Iniciar ou parar a gravação
+        function toggleRecording() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+
+            if (!isRecording) {
+                // Iniciar gravação
+                recognition.start();
+                startTimer();
+            } else {
+                // Parar gravação
+                isRecording = false;
+                recognition.stop();
+                stopTimer();
+                updateUI();
+            }
+        }
+
+        // Iniciar o timer
+        function startTimer() {
+            seconds = 0;
+            updateTimerDisplay();
+            timer = setInterval(function() {
+                seconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        // Parar o timer
+        function stopTimer() {
+            clearInterval(timer);
+            timer = null;
+        }
+
+        // Atualizar a exibição do timer
+        function updateTimerDisplay() {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            domElements.timer.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Atualizar a interface com base no estado de gravação
+        function updateUI() {
+            const recordButton = domElements.recordButton;
+            const sectionSelect = domElements.sectionSelect;
+            
+            if (isRecording) {
+                recordButton.classList.add('btn-danger');
+                recordButton.classList.remove('btn-primary');
+                recordButton.innerHTML = '<i class="bi bi-stop-fill" style="font-size: 2rem;"></i>';
+                sectionSelect.disabled = true;
+            } else {
+                recordButton.classList.remove('btn-danger');
+                recordButton.classList.add('btn-primary');
+                recordButton.innerHTML = '<i class="bi bi-mic-fill" style="font-size: 2rem;"></i>';
+                sectionSelect.disabled = false;
+            }
+        }
+
+        // Visualizar o laudo completo
+        function previewLaudo() {
+            const patientName = domElements.patientName.value || 'Nome do Paciente';
+            const patientAge = domElements.patientAge.value || 'Idade';
+            const patientId = domElements.patientId.value || 'ID/Registro';
+            const date = new Date().toLocaleDateString('pt-BR');
+            
+            let laudoHtml = `
+                <div class="text-center mb-4">
+                    <h5>CLÍNICA CARDIOLÓGICA</h5>
+                    <h4>LAUDO DE ECOCARDIOGRAMA</h4>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Paciente:</strong> ${patientName}<br>
+                        <strong>Idade:</strong> ${patientAge} anos<br>
+                        <strong>ID/Registro:</strong> ${patientId}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <strong>Data:</strong> ${date}<br>
+                        <strong>Médico(a):</strong> ${doctorName}
+                    </div>
+                </div>
+                <hr>
+            `;
+            
+            // Verificar se há conteúdo em cada seção ou usar o padrão
+            for (const section in templateDefaults) {
+                const sectionName = getSectionDisplayName(section);
+                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                    ? fullTranscript[section].trim() 
+                    : templateDefaults[section];
+                
+                laudoHtml += `
+                    <div class="mb-3">
+                        <h6 class="fw-bold">${sectionName}:</h6>
+                        <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
+                    </div>
+                `;
+            }
+            
+            // Adicionar assinatura
+            laudoHtml += `
+                <hr class="mt-5">
+                <div class="text-center mt-5 pt-4">
+                    <div>____________________________________</div>
+                    <div>${doctorName}</div>
+                    <div>CRM-XX 12345</div>
+                </div>
+            `;
+            
+            domElements.laudoPreview.innerHTML = laudoHtml;
+            
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+        
+       // Gerar PDF do laudo
+function generatePDF() {
+    showLoading("Gerando PDF...");
+    setTimeout(() => {
+        try {
+            const { jsPDF } = window.jspdf;
+            
+            const patientName = domElements.patientName.value || 'Nome do Paciente';
+            const patientAge = domElements.patientAge.value || 'Idade';
+            const patientId = domElements.patientId.value || 'ID/Registro';
+            const date = new Date().toLocaleDateString('pt-BR');
+            
+            // Criar novo documento PDF
+            const doc = new jsPDF();
+            
+            // Adicionar cabeçalho
+            doc.setFontSize(18);
+            doc.text('LAUDO DE ECOCARDIOGRAMA', 105, 20, { align: 'center' });
+            
+            // Adicionar info do paciente
+            doc.setFontSize(12);
+            doc.text(`Paciente: ${patientName}`, 20, 40);
+            doc.text(`Idade: ${patientAge} anos`, 20, 50);
+            doc.text(`ID/Registro: ${patientId}`, 20, 60);
+            doc.text(`Data: ${date}`, 140, 40);
+            doc.text(`Médico: ${doctorName}`, 140, 50);
+            
+            // Linha divisória
+            doc.line(20, 70, 190, 70);
+            
+            // Adicionar cada seção do laudo
+            let yPos = 80;
+            
+            for (const section in templateDefaults) {
+                const sectionName = getSectionDisplayName(section);
+                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                    ? fullTranscript[section].trim() 
+                    : templateDefaults[section];
+                
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${sectionName}:`, 20, yPos);
+                doc.setFont(undefined, 'normal');
+                
+                yPos += 10;
+                
+                // Quebrar o texto em linhas
+                const textLines = doc.splitTextToSize(sectionContent, 170);
+                doc.text(textLines, 20, yPos);
+                
+                yPos += textLines.length * 7 + 5;
+                
+                // Verificar se precisa adicionar nova página
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+            }
+            
+            // Adicionar assinatura
+            yPos += 10;
+            doc.line(70, yPos, 140, yPos);
+            yPos += 5;
+            doc.text(doctorName, 105, yPos + 5, { align: 'center' });
+            doc.text('CRM-XX 12345', 105, yPos + 15, { align: 'center' });
+            
+            // Salvar o PDF
+            doc.save(`Laudo_${patientName.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`);
+            
+            hideLoading();
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            hideLoading();
+            alert('Erro ao gerar PDF. Verifique o console para mais detalhes.');
+        }
+    }, 500);
+}
+
+// Carregar lista de laudos salvos
+function loadReportsList() {
+    const reportsListContainer = domElements.reportsList;
+    reportsListContainer.innerHTML = '';
+    
+    try {
+        // Carregar laudos do localStorage
+        const savedReports = JSON.parse(localStorage.getItem('ecoheartReports') || '[]');
+        
+        if (savedReports.length === 0) {
+            reportsListContainer.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-exclamation-circle fs-3"></i>
+                    <p class="mt-2">Nenhum laudo salvo ainda.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Ordenar por data mais recente
+        savedReports.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Construir lista de laudos
+        savedReports.forEach(report => {
+            const reportDate = new Date(report.timestamp).toLocaleDateString('pt-BR');
+            const reportItem = document.createElement('div');
+            reportItem.className = 'report-item p-3 border-bottom';
+            reportItem.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="mb-1">${report.patientName}</h6>
+                        <p class="mb-0 small text-muted">ID: ${report.patientId} | Idade: ${report.patientAge} anos</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark">${reportDate}</span>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary view-report-btn" data-report-id="${report.id}">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-report-btn" data-report-id="${report.id}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            reportsListContainer.appendChild(reportItem);
+            
+            // Adicionar event listeners para os botões
+            reportItem.querySelector('.view-report-btn').addEventListener('click', () => {
+                loadReport(report.id);
+            });
+            
+            reportItem.querySelector('.delete-report-btn').addEventListener('click', () => {
+                if (confirm(`Tem certeza que deseja excluir o laudo de ${report.patientName}?`)) {
+                    deleteReport(report.id);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Erro ao carregar laudos:', error);
+        reportsListContainer.innerHTML = `
+            <div class="text-center py-4 text-danger">
+                <i class="bi bi-exclamation-triangle fs-3"></i>
+                <p class="mt-2">Erro ao carregar laudos.</p>
+            </div>
+        `;
+    }
+}
+
+// Salvar laudo atual
+function saveReport() {
+    try {
+        // Verificar campos obrigatórios
+        if (!domElements.patientName.value) {
+            alert('Por favor, informe o nome do paciente.');
+            return;
+        }
+        
+        // Preparar dados do laudo
+        const reportData = {
+            id: currentReportId || Date.now().toString(),
+            timestamp: Date.now(),
+            patientName: domElements.patientName.value,
+            patientAge: domElements.patientAge.value,
+            patientId: domElements.patientId.value,
+            doctor: doctorName,
+            content: fullTranscript
+        };
+        
+        // Carregar laudos existentes
+        const savedReports = JSON.parse(localStorage.getItem('ecoheartReports') || '[]');
+        
+        // Verificar se é atualização ou novo laudo
+        const existingIndex = savedReports.findIndex(r => r.id === reportData.id);
+        if (existingIndex >= 0) {
+            savedReports[existingIndex] = reportData;
+        } else {
+            savedReports.push(reportData);
+        }
+        
+        // Salvar no localStorage
+        localStorage.setItem('ecoheartReports', JSON.stringify(savedReports));
+        
+        alert('Laudo salvo com sucesso!');
+        
+        // Atualizar ID do laudo atual
+        currentReportId = reportData.id;
+    } catch (error) {
+        console.error('Erro ao salvar laudo:', error);
+        alert('Erro ao salvar laudo. Verifique o console para mais detalhes.');
+    }
+}
+
+// Carregar um laudo salvo
+function loadReport(reportId) {
+    try {
+        const savedReports = JSON.parse(localStorage.getItem('ecoheartReports') || '[]');
+        const report = savedReports.find(r => r.id === reportId);
+        
+        if (!report) {
+            alert('Laudo não encontrado.');
+            return;
+        }
+        
+        // Carregar dados do paciente
+        domElements.patientName.value = report.patientName;
+        domElements.patientAge.value = report.patientAge;
+        domElements.patientId.value = report.patientId;
+        
+        // Carregar conteúdo do laudo
+        fullTranscript = report.content;
+        
+        // Atualizar ID do laudo atual
+        currentReportId = report.id;
+        
+        // Atualizar a visualização
+        updateTranscriptView();
+        
+        // Mostrar a tela de edição
+        showNewReport();
+    } catch (error) {
+        console.error('Erro ao carregar laudo:', error);
+        alert('Erro ao carregar laudo. Verifique o console para mais detalhes.');
+    }
+}
+
+// Excluir um laudo
+function deleteReport(reportId) {
+    try {
+        const savedReports = JSON.parse(localStorage.getItem('ecoheartReports') || '[]');
+        const updatedReports = savedReports.filter(r => r.id !== reportId);
+        
+        // Salvar no localStorage
+        localStorage.setItem('ecoheartReports', JSON.stringify(updatedReports));
+        
+        // Recarregar lista
+        loadReportsList();
+    } catch (error) {
+        console.error('Erro ao excluir laudo:', error);
+        alert('Erro ao excluir laudo. Verifique o console para mais detalhes.');
+    }
+}
+
+// Editar uma seção específica
+function editSection() {
+    const section = domElements.editSectionSelect.value;
+    const content = domElements.editTranscript.value;
+    
+    // Atualizar o conteúdo da seção
+    fullTranscript[section] = content;
+    
+    // Atualizar a visualização se for a seção atual
+    if (section === currentSection) {
+        updateTranscriptView();
+    }
+    
+    // Fechar o modal
+    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+}
+
+// Inicializar 
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar reconhecimento de voz
+    initSpeechRecognition();
+    
+    // Inicializar modelo padrão
+    initializeTemplate();
+    
+    // Event Listeners
+    
+    // Botão de gravação
+    domElements.recordButton.addEventListener('click', toggleRecording);
+    
+    // Troca de seção
+    domElements.sectionSelect.addEventListener('change', function() {
+        currentSection = this.value;
+        updateTranscriptView();
+    });
+    
+    // Seções rápidas
+    document.querySelectorAll('.section-tag').forEach(tag => {
+        tag.addEventListener('click', function() {
+            currentSection = this.dataset.section;
+            domElements.sectionSelect.value = currentSection;
+            updateTranscriptView();
+        });
+    });
+    
+    // Navegação
+    domElements.viewReportsButton.addEventListener('click', showReportsList);
+    domElements.newReportButton.addEventListener('click', showNewReport);
+    domElements.newReportButtonAlt.addEventListener('click', showNewReport);
+    
+    // Edição
+    domElements.editButton.addEventListener('click', function() {
+        domElements.editSectionSelect.value = currentSection;
+        domElements.editTranscript.value = fullTranscript[currentSection] || '';
+        
+        const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        editModal.show();
+    });
+    
+    domElements.applyEdit.addEventListener('click', editSection);
+    
+    // Visualização e Salvamento
+    domElements.previewButton.addEventListener('click', previewLaudo);
+    domElements.generatePdfButton.addEventListener('click', generatePDF);
+    domElements.saveReportButton.addEventListener('click', saveReport);
+    domElements.saveFromPreviewButton.addEventListener('click', function() {
+        saveReport();
+        bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
+    });
+});
