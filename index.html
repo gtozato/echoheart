@@ -1,0 +1,679 @@
+Arquivo: index.html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoHeart MVP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Adicionando bibliotecas para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .recording-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: red;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .pulse {
+            animation: pulse-animation 1.5s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        .section-tag {
+            display: inline-block;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .timer {
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+        .transcript-box {
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: white;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+        .app-container {
+            display: none;
+        }
+        .login-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .template-field {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .template-field.empty {
+            color: #aaa;
+            font-style: italic;
+        }
+        .hospital-logo {
+            max-height: 60px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div id="loginContainer" class="login-container">
+        <div class="text-center mb-4">
+            <img src="/api/placeholder/200/60" alt="EcoHeart" class="hospital-logo">
+            <h2 class="h4 text-primary">EcoHeart</h2>
+            <p class="text-muted">Sistema de Laudos de Ecocardiografia</p>
+        </div>
+        <div class="login-form">
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuário</label>
+                <input type="text" class="form-control" id="username" placeholder="Seu nome de usuário">
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="password" placeholder="Sua senha">
+            </div>
+            <div class="d-grid">
+                <button id="loginButton" class="btn btn-primary">Entrar</button>
+            </div>
+            <div id="loginError" class="text-danger mt-3 text-center" style="display: none;">
+                Usuário ou senha incorretos.
+            </div>
+        </div>
+    </div>
+
+    <!-- Aplicativo Principal (visível após login) -->
+    <div id="appContainer" class="container py-4 app-container">
+        <header class="pb-3 mb-4 border-bottom">
+            <div class="d-flex align-items-center">
+                <h1 class="h3 me-auto text-primary">EcoHeart MVP</h1>
+                <span id="statusIndicator" class="badge bg-secondary">Offline</span>
+                <div class="ms-2 dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="currentUser">Médico</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="#" id="logoutButton">Sair</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="patientName" class="form-label">Nome do Paciente</label>
+                    <input type="text" class="form-control" id="patientName" placeholder="Ex: João Silva">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="patientAge" class="form-label">Idade</label>
+                    <input type="number" class="form-control" id="patientAge" placeholder="Ex: 65">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="patientId" class="form-label">ID/Registro</label>
+                    <input type="text" class="form-control" id="patientId" placeholder="Ex: 12345">
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <select id="currentSection" class="form-select">
+                            <option value="geral">Geral</option>
+                            <option value="ventriculo_esquerdo">Ventrículo Esquerdo</option>
+                            <option value="atrio_esquerdo">Átrio Esquerdo</option>
+                            <option value="valvula_mitral">Válvula Mitral</option>
+                            <option value="ventriculo_direito">Ventrículo Direito</option>
+                            <option value="atrio_direito">Átrio Direito</option>
+                            <option value="valvula_tricuspide">Válvula Tricúspide</option>
+                            <option value="valvula_aortica">Válvula Aórtica</option>
+                            <option value="valvula_pulmonar">Válvula Pulmonar</option>
+                            <option value="aorta">Aorta</option>
+                            <option value="arteria_pulmonar">Artéria Pulmonar</option>
+                            <option value="pericardio">Pericárdio</option>
+                            <option value="conclusao">Conclusão</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="timer" id="timer">00:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Transcrição <small class="text-muted">(seção atual)</small></h5>
+                        <div id="transcript" class="transcript-box">
+                            <p class="text-muted">A transcrição aparecerá aqui enquanto você fala...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12 text-center">
+                <button id="recordButton" class="btn btn-lg btn-primary rounded-circle" style="width: 80px; height: 80px;">
+                    <i class="bi bi-mic-fill" style="font-size: 2rem;"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Seções Rápidas</h5>
+                        <div class="section-tags">
+                            <span class="section-tag badge bg-light text-dark" data-section="ventriculo_esquerdo">Ventrículo Esquerdo</span>
+                            <span class="section-tag badge bg-light text-dark" data-section="atrio_esquerdo">Átrio Esquerdo</span>
+                            <span class="section-tag badge bg-light text-dark" data-section="valvula_mitral">Válvula Mitral</span>
+                            <span class="section-tag badge bg-light text-dark" data-section="conclusao">Conclusão</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-end gap-2">
+                    <button id="previewButton" class="btn btn-outline-primary">Visualizar Laudo</button>
+                    <button id="editButton" class="btn btn-outline-secondary">Editar</button>
+                    <button id="saveButton" class="btn btn-success">Exportar PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Laudo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editSectionSelect" class="form-label">Seção</label>
+                            <select id="editSectionSelect" class="form-select">
+                                <option value="geral">Geral</option>
+                                <option value="ventriculo_esquerdo">Ventrículo Esquerdo</option>
+                                <option value="atrio_esquerdo">Átrio Esquerdo</option>
+                                <option value="valvula_mitral">Válvula Mitral</option>
+                                <option value="ventriculo_direito">Ventrículo Direito</option>
+                                <option value="atrio_direito">Átrio Direito</option>
+                                <option value="valvula_tricuspide">Válvula Tricúspide</option>
+                                <option value="valvula_aortica">Válvula Aórtica</option>
+                                <option value="valvula_pulmonar">Válvula Pulmonar</option>
+                                <option value="aorta">Aorta</option>
+                                <option value="arteria_pulmonar">Artéria Pulmonar</option>
+                                <option value="pericardio">Pericárdio</option>
+                                <option value="conclusao">Conclusão</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTranscript" class="form-label">Conteúdo</label>
+                            <textarea id="editTranscript" class="form-control" rows="15"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="applyEdit">Aplicar Mudanças</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Modal -->
+        <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Visualização do Laudo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="laudoPreview" class="border p-4 bg-white">
+                            <!-- Conteúdo do laudo será inserido aqui -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" id="generatePdfButton">Gerar PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variáveis globais
+        let isRecording = false;
+        let recognition = null;
+        let timer = null;
+        let seconds = 0;
+        let fullTranscript = {};
+        let currentSection = 'geral';
+        let currentUser = null;
+
+        // Usuários de teste para o MVP
+        // Em uma versão real, isso seria armazenado no servidor
+        const users = [
+            { username: "gtozato", password: "gus36avo", name: "Gustavo Tozato" },
+            { username: "mariapatricia", password: "ziggy2015", name: "Dra. Maria Patricia" },
+            { username: "admin", password: "admin", name: "Administrador" }
+        ];
+
+        // Modelo padrão com valores default para cada seção
+        const templateDefaults = {
+            geral: "Exame realizado em condições técnicas satisfatórias.",
+            ventriculo_esquerdo: "Dimensões e função sistólica preservadas. Espessura parietal normal.",
+            atrio_esquerdo: "Dimensões normais.",
+            valvula_mitral: "Folhetos com morfologia e mobilidade normais.",
+            ventriculo_direito: "Dimensões e função normais.",
+            atrio_direito: "Dimensões normais.",
+            valvula_tricuspide: "Morfologia normal, refluxo fisiológico mínimo.",
+            valvula_aortica: "Trivalvular, com boa abertura e coaptação.",
+            valvula_pulmonar: "Morfologia e função normais.",
+            aorta: "Dimensões preservadas.",
+            arteria_pulmonar: "Calibre normal.",
+            pericardio: "Fino, sem derrame.",
+            conclusao: "Ecocardiograma dentro dos padrões de normalidade para idade e sexo."
+        };
+
+        // Elementos DOM
+        const loginContainer = document.getElementById('loginContainer');
+        const appContainer = document.getElementById('appContainer');
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const loginError = document.getElementById('loginError');
+        const currentUserSpan = document.getElementById('currentUser');
+        const recordButton = document.getElementById('recordButton');
+        const transcriptBox = document.getElementById('transcript');
+        const editButton = document.getElementById('editButton');
+        const saveButton = document.getElementById('saveButton');
+        const previewButton = document.getElementById('previewButton');
+        const timerElement = document.getElementById('timer');
+        const sectionSelect = document.getElementById('currentSection');
+        const editTranscript = document.getElementById('editTranscript');
+        const editSectionSelect = document.getElementById('editSectionSelect');
+        const applyEdit = document.getElementById('applyEdit');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const sectionTags = document.querySelectorAll('.section-tag');
+        const laudoPreview = document.getElementById('laudoPreview');
+        const generatePdfButton = document.getElementById('generatePdfButton');
+        
+        // Funções de autenticação
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const user = users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                // Login bem-sucedido
+                currentUser = user;
+                currentUserSpan.textContent = user.name;
+                
+                // Armazenar no sessionStorage (não é seguro para produção, apenas para MVP)
+                sessionStorage.setItem('currentUser', JSON.stringify(user));
+                
+                // Mostrar o aplicativo
+                loginContainer.style.display = 'none';
+                appContainer.style.display = 'block';
+                
+                // Inicializar o reconhecimento de voz
+                initSpeechRecognition();
+                
+                // Preencher o modelo padrão
+                initializeTemplate();
+            } else {
+                // Login falhou
+                loginError.style.display = 'block';
+                setTimeout(() => {
+                    loginError.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            sessionStorage.removeItem('currentUser');
+            
+            // Voltar à tela de login
+            loginContainer.style.display = 'block';
+            appContainer.style.display = 'none';
+            
+            // Parar gravação se estiver ativa
+            if (isRecording) {
+                isRecording = false;
+                if (recognition) {
+                    recognition.stop();
+                }
+                stopTimer();
+                updateUI();
+            }
+            
+            // Limpar dados do laudo atual
+            fullTranscript = {};
+            document.getElementById('patientName').value = '';
+            document.getElementById('patientAge').value = '';
+            document.getElementById('patientId').value = '';
+        }
+        
+        // Verificar se o usuário já está logado (sessão)
+        function checkSession() {
+            const savedUser = sessionStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                currentUserSpan.textContent = currentUser.name;
+                
+                // Mostrar o aplicativo
+                loginContainer.style.display = 'none';
+                appContainer.style.display = 'block';
+                
+                // Inicializar o reconhecimento de voz
+                initSpeechRecognition();
+                
+                // Preencher o modelo padrão
+                initializeTemplate();
+            }
+        }
+        
+        // Inicializar o modelo padrão
+        function initializeTemplate() {
+            // Se for um novo laudo, preencher com os valores padrão
+            if (Object.keys(fullTranscript).length === 0) {
+                for (const section in templateDefaults) {
+                    fullTranscript[section] = '';
+                }
+            }
+        }
+
+        // Inicializar o reconhecimento de voz se estiver disponível
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'pt-BR';
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    updateUI();
+                    statusIndicator.textContent = 'Gravando';
+                    statusIndicator.className = 'badge bg-danger';
+                };
+
+                recognition.onresult = function(event) {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalTranscript) {
+                        // Adicionar ao transcript completo
+                        if (!fullTranscript[currentSection]) {
+                            fullTranscript[currentSection] = '';
+                        }
+                        fullTranscript[currentSection] += ' ' + finalTranscript;
+                        
+                        // Atualizar a visualização
+                        updateTranscriptView();
+                    }
+
+                    // Mostrar resultados intermediários
+                    if (interimTranscript) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = `<p><em>${interimTranscript}</em></p>`;
+                        transcriptBox.appendChild(tempDiv);
+                        transcriptBox.scrollTop = transcriptBox.scrollHeight;
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Erro no reconhecimento de voz:', event.error);
+                    statusIndicator.textContent = 'Erro';
+                    statusIndicator.className = 'badge bg-warning';
+                };
+
+                recognition.onend = function() {
+                    // Se ainda estiver gravando, reiniciar o reconhecimento
+                    if (isRecording) {
+                        recognition.start();
+                    } else {
+                        stopTimer();
+                        statusIndicator.textContent = 'Parado';
+                        statusIndicator.className = 'badge bg-secondary';
+                    }
+                };
+
+                statusIndicator.textContent = 'Pronto';
+                statusIndicator.className = 'badge bg-success';
+            } else {
+                alert('Seu navegador não suporta reconhecimento de voz. Recomendamos usar o Chrome ou Edge.');
+                statusIndicator.textContent = 'Não suportado';
+                statusIndicator.className = 'badge bg-danger';
+            }
+        }
+
+        // Atualizar a visualização da transcrição atual
+        function updateTranscriptView() {
+            transcriptBox.innerHTML = '';
+            
+            // Mostrar apenas a transcrição da seção atual
+            if (fullTranscript[currentSection]) {
+                const contentDiv = document.createElement('div');
+                contentDiv.innerHTML = `<p>${fullTranscript[currentSection]}</p>`;
+                transcriptBox.appendChild(contentDiv);
+            } else {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.innerHTML = `<p class="text-muted">A transcrição aparecerá aqui enquanto você fala...</p>`;
+                transcriptBox.appendChild(emptyDiv);
+            }
+            
+            transcriptBox.scrollTop = transcriptBox.scrollHeight;
+        }
+
+        // Obter nome de exibição para a seção
+        function getSectionDisplayName(sectionKey) {
+            const sectionMap = {
+                'geral': 'Geral',
+                'ventriculo_esquerdo': 'Ventrículo Esquerdo',
+                'atrio_esquerdo': 'Átrio Esquerdo',
+                'valvula_mitral': 'Válvula Mitral',
+                'ventriculo_direito': 'Ventrículo Direito',
+                'atrio_direito': 'Átrio Direito',
+                'valvula_tricuspide': 'Válvula Tricúspide',
+                'valvula_aortica': 'Válvula Aórtica',
+                'valvula_pulmonar': 'Válvula Pulmonar',
+                'aorta': 'Aorta',
+                'arteria_pulmonar': 'Artéria Pulmonar',
+                'pericardio': 'Pericárdio',
+                'conclusao': 'Conclusão'
+            };
+            return sectionMap[sectionKey] || sectionKey;
+        }
+
+        // Iniciar ou parar a gravação
+        function toggleRecording() {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+
+            if (!isRecording) {
+                // Iniciar gravação
+                recognition.start();
+                startTimer();
+            } else {
+                // Parar gravação
+                isRecording = false;
+                recognition.stop();
+                stopTimer();
+                updateUI();
+            }
+        }
+
+        // Iniciar o timer
+        function startTimer() {
+            seconds = 0;
+            updateTimerDisplay();
+            timer = setInterval(function() {
+                seconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        // Parar o timer
+        function stopTimer() {
+            clearInterval(timer);
+            timer = null;
+        }
+
+        // Atualizar a exibição do timer
+        function updateTimerDisplay() {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Atualizar a interface com base no estado de gravação
+        function updateUI() {
+            if (isRecording) {
+                recordButton.classList.add('btn-danger');
+                recordButton.classList.remove('btn-primary');
+                recordButton.innerHTML = '<i class="bi bi-stop-fill" style="font-size: 2rem;"></i>';
+                sectionSelect.disabled = true;
+            } else {
+                recordButton.classList.remove('btn-danger');
+                recordButton.classList.add('btn-primary');
+                recordButton.innerHTML = '<i class="bi bi-mic-fill" style="font-size: 2rem;"></i>';
+                sectionSelect.disabled = false;
+            }
+        }
+
+        // Visualizar o laudo completo
+        function previewLaudo() {
+            const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+            const patientAge = document.getElementById('patientAge').value || 'Idade';
+            const patientId = document.getElementById('patientId').value || 'ID/Registro';
+            const date = new Date().toLocaleDateString('pt-BR');
+            
+            let laudoHtml = `
+                <div class="text-center mb-4">
+                    <h5>CLÍNICA CARDIOLÓGICA</h5>
+                    <h4>LAUDO DE ECOCARDIOGRAMA</h4>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Paciente:</strong> ${patientName}<br>
+                        <strong>Idade:</strong> ${patientAge} anos<br>
+                        <strong>ID/Registro:</strong> ${patientId}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <strong>Data:</strong> ${date}<br>
+                        <strong>Médico(a):</strong> ${currentUser ? currentUser.name : 'Médico Responsável'}
+                    </div>
+                </div>
+                <hr>
+            `;
+            
+            // Verificar se há conteúdo em cada seção ou usar o padrão
+            for (const section in templateDefaults) {
+                const sectionName = getSectionDisplayName(section);
+                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                    ? fullTranscript[section].trim() 
+                    : templateDefaults[section];
+                
+                laudoHtml += `
+                    <div class="mb-3">
+                        <h6 class="fw-bold">${sectionName}:</h6>
+                        <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
+                    </div>
+                `;
+            }
+            
+            // Adicionar assinatura
+            laudoHtml += `
+                <hr class="mt-5">
+                <div class="text-center mt-5 pt-4">
+                    <div>____________________________________</div>
+                    <div>${currentUser ? currentUser.name : 'Médico Responsável'}</div>
+                    <div>CRM-XX 12345</div>
+                </div>
+            `;
+            
+            laudoPreview.innerHTML = laudoHtml;
+            
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+        
+        // Gerar PDF do laudo
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            
+            const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+            const patientAge = document.getElementById('patientAge').value || 'Idade';
+            const patientId = document.getElementById('patientId').value || 'ID/Registro';
+            const date = new Date().toLocaleDateString('pt-BR');
+            
+            // Criar novo documento PDF
+            const doc = new jsPDF();
+            
+            // Adicionar cabeçalho
+            doc.setFontSize(18);
+            doc.text('LAUDO DE ECOCARDIOGRAMA', 105, 20, { align: 'center' });
+            
+            // Adicionar info do paciente
+            doc.setFontSize(12);
+            doc.text(`Paciente: ${patientName}`, 20, 40);
+            doc.text(`Idade: ${patientAge} anos`, 20, 50);
+            doc.text(`ID/Registro: ${patientId}`, 20, 60);
+            doc.text(`Data: ${date}`, 140, 40);
+            doc.text(`Médico: ${currentUser ? currentUser.name : 'Médico Responsável'}`, 140, 50);
+            
+            // Linha divisória
+            doc.line(20, 70, 190, 70);
+            
+            // Preparar conteúdo do laudo
+            let yPos = 80;
+            
+            // Adicionar cada seção do laudo
+            for (const section in templateDefaults) {
