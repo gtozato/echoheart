@@ -411,78 +411,112 @@
             updateTranscriptView();
         }
 
-        // Inicializar o reconhecimento de voz se estiver disponível
-        function initSpeechRecognition() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = 'pt-BR';
+       // Inicializar o reconhecimento de voz se estiver disponível
+function initSpeechRecognition() {
+    // Primeiro, verificar se estamos em HTTPS ou localhost
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        alert('O reconhecimento de voz só funciona em conexões seguras (HTTPS). Por favor, acesse este site usando HTTPS.');
+        domElements.statusIndicator.textContent = 'HTTPS necessário';
+        domElements.statusIndicator.className = 'badge bg-warning';
+        return;
+    }
 
-                recognition.onstart = function() {
-                    isRecording = true;
-                    updateUI();
-                    domElements.statusIndicator.textContent = 'Gravando';
-                    domElements.statusIndicator.className = 'badge bg-danger';
-                };
+    // Verificar suporte do navegador
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Seu navegador não suporta reconhecimento de voz. Recomendamos usar o Chrome ou Edge.');
+        domElements.statusIndicator.textContent = 'Não suportado';
+        domElements.statusIndicator.className = 'badge bg-danger';
+        return;
+    }
 
-                recognition.onresult = function(event) {
-                    let interimTranscript = '';
-                    let finalTranscript = '';
+    // Verificar acesso ao microfone
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function(stream) {
+            // Permissão concedida, parar o stream
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Configurar reconhecimento de voz
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'pt-BR';
 
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            finalTranscript += event.results[i][0].transcript;
-                        } else {
-                            interimTranscript += event.results[i][0].transcript;
-                        }
-                    }
-
-                    if (finalTranscript) {
-                        // Adicionar ao transcript completo
-                        if (!fullTranscript[currentSection]) {
-                            fullTranscript[currentSection] = '';
-                        }
-                        fullTranscript[currentSection] += ' ' + finalTranscript;
-                        
-                        // Atualizar a visualização
-                        updateTranscriptView();
-                    }
-
-                    // Mostrar resultados intermediários
-                    if (interimTranscript) {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = `<p><em>${interimTranscript}</em></p>`;
-                        domElements.transcript.appendChild(tempDiv);
-                        domElements.transcript.scrollTop = domElements.transcript.scrollHeight;
-                    }
-                };
-
-                recognition.onerror = function(event) {
-                    console.error('Erro no reconhecimento de voz:', event.error);
-                    domElements.statusIndicator.textContent = 'Erro';
-                    domElements.statusIndicator.className = 'badge bg-warning';
-                };
-
-                recognition.onend = function() {
-                    // Se ainda estiver gravando, reiniciar o reconhecimento
-                    if (isRecording) {
-                        recognition.start();
-                    } else {
-                        stopTimer();
-                        domElements.statusIndicator.textContent = 'Parado';
-                        domElements.statusIndicator.className = 'badge bg-secondary';
-                    }
-                };
-
-                domElements.statusIndicator.textContent = 'Pronto';
-                domElements.statusIndicator.className = 'badge bg-success';
-            } else {
-                alert('Seu navegador não suporta reconhecimento de voz. Recomendamos usar o Chrome ou Edge.');
-                domElements.statusIndicator.textContent = 'Não suportado';
+            recognition.onstart = function() {
+                isRecording = true;
+                updateUI();
+                domElements.statusIndicator.textContent = 'Gravando';
                 domElements.statusIndicator.className = 'badge bg-danger';
-            }
-        }
+            };
+
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    // Adicionar ao transcript completo
+                    if (!fullTranscript[currentSection]) {
+                        fullTranscript[currentSection] = '';
+                    }
+                    fullTranscript[currentSection] += ' ' + finalTranscript;
+                    
+                    // Atualizar a visualização
+                    updateTranscriptView();
+                }
+
+                // Mostrar resultados intermediários
+                if (interimTranscript) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = `<p><em>${interimTranscript}</em></p>`;
+                    domElements.transcript.appendChild(tempDiv);
+                    domElements.transcript.scrollTop = domElements.transcript.scrollHeight;
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Erro no reconhecimento de voz:', event.error);
+                domElements.statusIndicator.textContent = 'Erro: ' + event.error;
+                domElements.statusIndicator.className = 'badge bg-warning';
+            };
+
+            recognition.onend = function() {
+                // Se ainda estiver gravando, reiniciar o reconhecimento
+                if (isRecording) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Erro ao reiniciar gravação:', e);
+                        isRecording = false;
+                        updateUI();
+                    }
+                } else {
+                    stopTimer();
+                    domElements.statusIndicator.textContent = 'Parado';
+                    domElements.statusIndicator.className = 'badge bg-secondary';
+                }
+            };
+
+            domElements.statusIndicator.textContent = 'Pronto';
+            domElements.statusIndicator.className = 'badge bg-success';
+            
+            console.log('Reconhecimento de voz inicializado com sucesso');
+        })
+        .catch(function(err) {
+            console.error('Erro ao acessar microfone:', err);
+            domElements.statusIndicator.textContent = 'Sem permissão';
+            domElements.statusIndicator.className = 'badge bg-danger';
+            alert('Este aplicativo precisa de acesso ao microfone para funcionar. Por favor, conceda permissão quando solicitado pelo navegador.');
+        });
+}
+            
+        
 
         // Atualizar a visualização da transcrição atual
         function updateTranscriptView() {
@@ -524,23 +558,40 @@
         }
 
         // Iniciar ou parar a gravação
-        function toggleRecording() {
-            if (!recognition) {
-                initSpeechRecognition();
-            }
-
-            if (!isRecording) {
-                // Iniciar gravação
-                recognition.start();
-                startTimer();
-            } else {
-                // Parar gravação
-                isRecording = false;
-                recognition.stop();
-                stopTimer();
-                updateUI();
-            }
+function toggleRecording() {
+    if (!recognition) {
+        // Tentar inicializar novamente
+        initSpeechRecognition();
+        // Se ainda não tiver reconhecimento, sair
+        if (!recognition) {
+            alert('Não foi possível iniciar o reconhecimento de voz. Verifique as permissões do navegador e tente novamente.');
+            return;
         }
+    }
+
+    try {
+        if (!isRecording) {
+            // Iniciar gravação
+            recognition.start();
+            startTimer();
+            console.log('Gravação iniciada');
+        } else {
+            // Parar gravação
+            isRecording = false;
+            recognition.stop();
+            stopTimer();
+            updateUI();
+            console.log('Gravação parada');
+        }
+    } catch (error) {
+        console.error('Erro ao alternar gravação:', error);
+        alert('Ocorreu um erro ao tentar iniciar/parar a gravação. Por favor, recarregue a página e tente novamente.');
+        
+        // Resetar estado
+        isRecording = false;
+        updateUI();
+    }
+}
 
         // Iniciar o timer
         function startTimer() {
