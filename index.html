@@ -3,44 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoHeart - Teste de Reconhecimento</title>
+    <title>EcoHeart - Laudos de Ecocardiografia</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- PDF Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body { padding: 20px; }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .recording-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: red;
+            margin-right: 5px;
+            animation: pulse-animation 1.5s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        .section-tag {
+            display: inline-block;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .timer {
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
         .transcript-box {
             min-height: 200px;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: white;
         }
         .recording { 
-            background-color: #ffecec; 
-            border-color: #ff5252;
+            background-color: #fff8f8; 
+            border-color: #ff9999;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>EcoHeart - Teste de Reconhecimento de Voz</h2>
-        <p>Status: <span id="status">Aguardando</span></p>
+    <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom">
+            <div class="d-flex align-items-center">
+                <h1 class="h3 me-auto text-primary">EcoHeart</h1>
+                <div class="d-flex align-items-center">
+                    <span id="statusIndicator" class="badge bg-secondary">Aguardando</span>
+                </div>
+            </div>
+        </header>
 
-        <div class="transcript-box" id="transcript">
-            A transcrição aparecerá aqui...
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="patientName" class="form-label">Nome do Paciente</label>
+                    <input type="text" class="form-control" id="patientName" placeholder="Ex: João Silva">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="patientAge" class="form-label">Idade</label>
+                    <input type="number" class="form-control" id="patientAge" placeholder="Ex: 65">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="patientId" class="form-label">ID/Registro</label>
+                    <input type="text" class="form-control" id="patientId" placeholder="Ex: 12345">
+                </div>
+            </div>
         </div>
 
-        <button id="recordButton" class="btn btn-primary btn-lg">Iniciar Gravação</button>
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <select id="currentSection" class="form-select">
+                            <option value="geral">Geral</option>
+                            <option value="ventriculo_esquerdo">Ventrículo Esquerdo</option>
+                            <option value="atrio_esquerdo">Átrio Esquerdo</option>
+                            <option value="valvula_mitral">Válvula Mitral</option>
+                            <option value="ventriculo_direito">Ventrículo Direito</option>
+                            <option value="atrio_direito">Átrio Direito</option>
+                            <option value="valvula_tricuspide">Válvula Tricúspide</option>
+                            <option value="valvula_aortica">Válvula Aórtica</option>
+                            <option value="valvula_pulmonar">Válvula Pulmonar</option>
+                            <option value="aorta">Aorta</option>
+                            <option value="arteria_pulmonar">Artéria Pulmonar</option>
+                            <option value="pericardio">Pericárdio</option>
+                            <option value="conclusao">Conclusão</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Transcrição <small class="text-muted">(seção atual)</small></h5>
+                        <div id="transcript" class="transcript-box">
+                            <p class="text-muted">A transcrição aparecerá aqui enquanto você fala...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12 text-center">
+                <button id="recordButton" class="btn btn-lg btn-primary">
+                    Iniciar Gravação
+                </button>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Seções Rápidas</h5>
+                        <div class="section-tags">
+                            <span class="section-tag badge bg-light text-dark" data-section="ventriculo_esquerdo">Ventrículo Esquerdo</span>
+                            <span class="section-tag badge bg-light text-dark" data-section="atrio_esquerdo">Átrio Esquerdo</span>
+                            <span class="section-tag badge bg-light text-dark" data-section="valvula_mitral">Válvula Mitral</span>
+                            <span class="section-tag badge bg-light text-dark" data-section="conclusao">Conclusão</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-end gap-2">
+                    <button id="editButton" class="btn btn-outline-secondary">Editar</button>
+                    <button id="previewButton" class="btn btn-outline-primary">Visualizar Laudo</button>
+                    <button id="generatePdfButton" class="btn btn-success">Gerar PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Laudo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editSectionSelect" class="form-label">Seção</label>
+                            <select id="editSectionSelect" class="form-select">
+                                <option value="geral">Geral</option>
+                                <option value="ventriculo_esquerdo">Ventrículo Esquerdo</option>
+                                <option value="atrio_esquerdo">Átrio Esquerdo</option>
+                                <option value="valvula_mitral">Válvula Mitral</option>
+                                <option value="ventriculo_direito">Ventrículo Direito</option>
+                                <option value="atrio_direito">Átrio Direito</option>
+                                <option value="valvula_tricuspide">Válvula Tricúspide</option>
+                                <option value="valvula_aortica">Válvula Aórtica</option>
+                                <option value="valvula_pulmonar">Válvula Pulmonar</option>
+                                <option value="aorta">Aorta</option>
+                                <option value="arteria_pulmonar">Artéria Pulmonar</option>
+                                <option value="pericardio">Pericárdio</option>
+                                <option value="conclusao">Conclusão</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTranscript" class="form-label">Conteúdo</label>
+                            <textarea id="editTranscript" class="form-control" rows="10"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="applyEdit">Aplicar Mudanças</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Modal -->
+        <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Visualização do Laudo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="laudoPreview" class="border p-4 bg-white">
+                            <!-- Conteúdo do laudo será inserido aqui -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" id="exportPdf">Exportar PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Variáveis globais
         let recognition = null;
         let isRecording = false;
-        
+        let currentSection = 'geral';
+        let fullTranscript = {};
+        const doctorName = "Médico(a) Responsável";
+
+        // Modelo padrão com valores default para cada seção
+        const templateDefaults = {
+            geral: "Exame realizado em condições técnicas satisfatórias.",
+            ventriculo_esquerdo: "Dimensões e função sistólica preservadas. Espessura parietal normal.",
+            atrio_esquerdo: "Dimensões normais.",
+            valvula_mitral: "Folhetos com morfologia e mobilidade normais.",
+            ventriculo_direito: "Dimensões e função normais.",
+            atrio_direito: "Dimensões normais.",
+            valvula_tricuspide: "Morfologia normal, refluxo fisiológico mínimo.",
+            valvula_aortica: "Trivalvular, com boa abertura e coaptação.",
+            valvula_pulmonar: "Morfologia e função normais.",
+            aorta: "Dimensões preservadas.",
+            arteria_pulmonar: "Calibre normal.",
+            pericardio: "Fino, sem derrame.",
+            conclusao: "Ecocardiograma dentro dos padrões de normalidade para idade e sexo."
+        };
+
         // Elementos DOM
-        const statusElement = document.getElementById('status');
         const transcriptElement = document.getElementById('transcript');
         const recordButton = document.getElementById('recordButton');
-        
+        const statusIndicator = document.getElementById('statusIndicator');
+        const sectionSelect = document.getElementById('currentSection');
+        const editSectionSelect = document.getElementById('editSectionSelect');
+        const editTranscript = document.getElementById('editTranscript');
+        const applyEdit = document.getElementById('applyEdit');
+        const previewButton = document.getElementById('previewButton');
+        const laudoPreview = document.getElementById('laudoPreview');
+        const generatePdfButton = document.getElementById('generatePdfButton');
+        const exportPdfButton = document.getElementById('exportPdf');
+        const editButton = document.getElementById('editButton');
+
+        // Inicializar o modelo padrão
+        function initializeTemplate() {
+            for (const section in templateDefaults) {
+                if (!fullTranscript[section]) {
+                    fullTranscript[section] = '';
+                }
+            }
+        }
+
         // Inicializar reconhecimento de voz
         function setupSpeechRecognition() {
             // Verificar suporte do navegador
@@ -48,7 +273,7 @@
                 alert('Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.');
                 return false;
             }
-            
+
             try {
                 // Criar objeto de reconhecimento
                 recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -60,45 +285,73 @@
                 
                 // Eventos
                 recognition.onstart = function() {
-                    statusElement.textContent = 'Gravando...';
-                    statusElement.style.color = 'red';
+                    statusIndicator.textContent = 'Gravando';
+                    statusIndicator.className = 'badge bg-danger';
                     transcriptElement.classList.add('recording');
                     recordButton.textContent = 'Parar Gravação';
+                    recordButton.classList.remove('btn-primary');
+                    recordButton.classList.add('btn-danger');
+                    sectionSelect.disabled = true;
                     isRecording = true;
                 };
                 
                 recognition.onresult = function(event) {
+                    let interimTranscript = '';
                     let finalTranscript = '';
                     
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         if (event.results[i].isFinal) {
                             finalTranscript += event.results[i][0].transcript + ' ';
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
                         }
                     }
                     
                     if (finalTranscript) {
-                        transcriptElement.innerHTML += finalTranscript;
+                        // Adicionar ao transcript da seção atual
+                        if (!fullTranscript[currentSection]) {
+                            fullTranscript[currentSection] = '';
+                        }
+                        fullTranscript[currentSection] += finalTranscript;
+                        
+                        // Atualizar visualização
+                        updateTranscriptView();
+                    }
+                    
+                    // Mostrar resultados temporários
+                    if (interimTranscript) {
+                        const currentContent = transcriptElement.innerHTML;
+                        if (currentContent.includes('<em>')) {
+                            transcriptElement.innerHTML = currentContent.replace(/<em>.*?<\/em>/, `<em>${interimTranscript}</em>`);
+                        } else {
+                            transcriptElement.innerHTML += `<em>${interimTranscript}</em>`;
+                        }
                     }
                 };
                 
                 recognition.onerror = function(event) {
                     console.error('Erro:', event.error);
-                    statusElement.textContent = 'Erro: ' + event.error;
-                    statusElement.style.color = 'orange';
+                    statusIndicator.textContent = 'Erro: ' + event.error;
+                    statusIndicator.className = 'badge bg-warning';
                 };
                 
                 recognition.onend = function() {
                     if (isRecording) {
                         // Tentar reiniciar se ainda estiver gravando
-                        recognition.start();
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.error('Erro ao reiniciar reconhecimento:', e);
+                            isRecording = false;
+                            stopRecording();
+                        }
                     } else {
-                        statusElement.textContent = 'Parado';
-                        statusElement.style.color = 'black';
-                        transcriptElement.classList.remove('recording');
-                        recordButton.textContent = 'Iniciar Gravação';
+                        stopRecording();
                     }
                 };
                 
+                statusIndicator.textContent = 'Pronto';
+                statusIndicator.className = 'badge bg-success';
                 return true;
             } catch (error) {
                 console.error('Erro ao configurar reconhecimento:', error);
@@ -106,36 +359,271 @@
                 return false;
             }
         }
-        
-        // Alternar gravação
-        function toggleRecording() {
+
+        // Iniciar gravação
+        function startRecording() {
             if (!recognition && !setupSpeechRecognition()) {
                 return;
             }
             
             try {
-                if (!isRecording) {
-                    // Limpar transcrição anterior
-                    transcriptElement.innerHTML = '';
-                    
-                    // Iniciar gravação
-                    recognition.start();
-                } else {
-                    // Parar gravação
-                    recognition.stop();
-                    isRecording = false;
-                }
+                recognition.start();
             } catch (error) {
-                console.error('Erro ao alternar gravação:', error);
-                alert('Erro: ' + error.message);
+                console.error('Erro ao iniciar gravação:', error);
+                alert('Erro ao iniciar gravação. Tente recarregar a página.');
             }
         }
+
+        // Parar gravação
+        function stopRecording() {
+            statusIndicator.textContent = 'Parado';
+            statusIndicator.className = 'badge bg-secondary';
+            transcriptElement.classList.remove('recording');
+            recordButton.textContent = 'Iniciar Gravação';
+            recordButton.classList.remove('btn-danger');
+            recordButton.classList.add('btn-primary');
+            sectionSelect.disabled = false;
+            isRecording = false;
+            
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.error('Erro ao parar reconhecimento:', e);
+                }
+            }
+        }
+
+        // Alternar gravação
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                updateTranscriptView(); // Limpa e atualiza a visualização
+                startRecording();
+            }
+        }
+
+        // Atualizar a visualização da transcrição atual
+        function updateTranscriptView() {
+            // Mostrar apenas a transcrição da seção atual
+            if (fullTranscript[currentSection] && fullTranscript[currentSection].trim()) {
+                transcriptElement.innerHTML = `<p>${fullTranscript[currentSection]}</p>`;
+            } else {
+                transcriptElement.innerHTML = `<p class="text-muted">A transcrição aparecerá aqui enquanto você fala...</p>`;
+            }
+        }
+
+        // Obter nome de exibição para a seção
+        function getSectionDisplayName(sectionKey) {
+            const sectionMap = {
+                'geral': 'Geral',
+                'ventriculo_esquerdo': 'Ventrículo Esquerdo',
+                'atrio_esquerdo': 'Átrio Esquerdo',
+                'valvula_mitral': 'Válvula Mitral',
+                'ventriculo_direito': 'Ventrículo Direito',
+                'atrio_direito': 'Átrio Direito',
+                'valvula_tricuspide': 'Válvula Tricúspide',
+                'valvula_aortica': 'Válvula Aórtica',
+                'valvula_pulmonar': 'Válvula Pulmonar',
+                'aorta': 'Aorta',
+                'arteria_pulmonar': 'Artéria Pulmonar',
+                'pericardio': 'Pericárdio',
+                'conclusao': 'Conclusão'
+            };
+            return sectionMap[sectionKey] || sectionKey;
+        }
+
+        // Visualizar o laudo completo
+        function previewLaudo() {
+            const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+            const patientAge = document.getElementById('patientAge').value || 'Idade';
+            const patientId = document.getElementById('patientId').value || 'ID/Registro';
+            const date = new Date().toLocaleDateString('pt-BR');
+            
+            let laudoHtml = `
+                <div class="text-center mb-4">
+                    <h5>CLÍNICA CARDIOLÓGICA</h5>
+                    <h4>LAUDO DE ECOCARDIOGRAMA</h4>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Paciente:</strong> ${patientName}<br>
+                        <strong>Idade:</strong> ${patientAge} anos<br>
+                        <strong>ID/Registro:</strong> ${patientId}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <strong>Data:</strong> ${date}<br>
+                        <strong>Médico(a):</strong> ${doctorName}
+                    </div>
+                </div>
+                <hr>
+            `;
+            
+            // Verificar se há conteúdo em cada seção ou usar o padrão
+            for (const section in templateDefaults) {
+                const sectionName = getSectionDisplayName(section);
+                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                    ? fullTranscript[section].trim() 
+                    : templateDefaults[section];
+                
+                laudoHtml += `
+                    <div class="mb-3">
+                        <h6 class="fw-bold">${sectionName}:</h6>
+                        <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
+                    </div>
+                `;
+            }
+            
+            // Adicionar assinatura
+            laudoHtml += `
+                <hr class="mt-5">
+                <div class="text-center mt-5 pt-4">
+                    <div>____________________________________</div>
+                    <div>${doctorName}</div>
+                    <div>CRM-XX 12345</div>
+                </div>
+            `;
+            
+            laudoPreview.innerHTML = laudoHtml;
+            
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+
+        // Editar seção
+        function editSection() {
+            const section = editSectionSelect.value;
+            const content = editTranscript.value;
+            
+            fullTranscript[section] = content;
+            
+            if (section === currentSection) {
+                updateTranscriptView();
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+        }
         
-        // Adicionar listener ao botão
-        recordButton.addEventListener('click', toggleRecording);
-        
-        // Inicializar ao carregar
-        window.addEventListener('DOMContentLoaded', setupSpeechRecognition);
+        // Gerar PDF
+        function generatePDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                
+                const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+                const patientAge = document.getElementById('patientAge').value || 'Idade';
+                const patientId = document.getElementById('patientId').value || 'ID/Registro';
+                const date = new Date().toLocaleDateString('pt-BR');
+                
+                // Criar novo documento PDF
+                const doc = new jsPDF();
+                
+                // Adicionar cabeçalho
+                doc.setFontSize(18);
+                doc.text('LAUDO DE ECOCARDIOGRAMA', 105, 20, { align: 'center' });
+                
+                // Adicionar info do paciente
+                doc.setFontSize(12);
+                doc.text(`Paciente: ${patientName}`, 20, 40);
+                doc.text(`Idade: ${patientAge} anos`, 20, 50);
+                doc.text(`ID/Registro: ${patientId}`, 20, 60);
+                doc.text(`Data: ${date}`, 140, 40);
+                doc.text(`Médico: ${doctorName}`, 140, 50);
+                
+                // Linha divisória
+                doc.line(20, 70, 190, 70);
+                
+                // Adicionar cada seção do laudo
+                let yPos = 80;
+                
+                for (const section in templateDefaults) {
+                    const sectionName = getSectionDisplayName(section);
+                    const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                        ? fullTranscript[section].trim() 
+                        : templateDefaults[section];
+                    
+                    // Verificar se precisa de nova página
+                    if (yPos > 250) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${sectionName}:`, 20, yPos);
+                    yPos += 7;
+                    
+                    doc.setFont(undefined, 'normal');
+                    
+                    // Quebrar texto em linhas
+                    const textLines = doc.splitTextToSize(sectionContent, 170);
+                    doc.text(textLines, 20, yPos);
+                    
+                    yPos += textLines.length * 7 + 7;
+                }
+                
+                // Adicionar assinatura
+                if (yPos > 230) {
+                    doc.addPage();
+                    yPos = 40;
+                } else {
+                    yPos += 20;
+                }
+                
+                doc.text('____________________________________', 105, yPos, { align: 'center' });
+                doc.text(doctorName, 105, yPos + 10, { align: 'center' });
+                doc.text('CRM-XX 12345', 105, yPos + 20, { align: 'center' });
+                
+                // Salvar o PDF
+                const filename = `Laudo_${patientName.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`;
+                doc.save(filename);
+                
+                alert('PDF gerado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao gerar PDF:', error);
+                alert('Ocorreu um erro ao gerar o PDF. Verifique o console para detalhes.');
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar
+            initializeTemplate();
+            setupSpeechRecognition();
+            
+            // Botão de gravação
+            recordButton.addEventListener('click', toggleRecording);
+            
+            // Troca de seção
+            sectionSelect.addEventListener('change', function() {
+                currentSection = this.value;
+                updateTranscriptView();
+            });
+            
+            // Botões de seção rápida
+            document.querySelectorAll('.section-tag').forEach(function(tag) {
+                tag.addEventListener('click', function() {
+                    currentSection = this.dataset.section;
+                    sectionSelect.value = currentSection;
+                    updateTranscriptView();
+                });
+            });
+            
+            // Botões de ação
+            previewButton.addEventListener('click', previewLaudo);
+            generatePdfButton.addEventListener('click', generatePDF);
+            exportPdfButton.addEventListener('click', generatePDF);
+            
+            // Edição
+            editButton.addEventListener('click', function() {
+                editSectionSelect.value = currentSection;
+                editTranscript.value = fullTranscript[currentSection] || '';
+                
+                const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+                editModal.show();
+            });
+            
+            applyEdit.addEventListener('click', editSection);
+        });
     </script>
 </body>
 </html>
