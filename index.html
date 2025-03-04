@@ -225,6 +225,11 @@
         let currentSection = 'geral';
         let fullTranscript = {};
         const doctorName = "Médico(a) Responsável";
+        // Adicione após suas variáveis globais atuais (como isRecording, recognition, etc.)
+const ecocardiogramaSystem = {
+    // Todo o código do objeto ecocardiogramaSystem que enviei
+    // ...
+};
 
         // Modelo padrão com valores default para cada seção
         const templateDefaults = {
@@ -295,39 +300,35 @@
                     isRecording = true;
                 };
                 
-                recognition.onresult = function(event) {
-                    let interimTranscript = '';
-                    let finalTranscript = '';
-                    
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            finalTranscript += event.results[i][0].transcript + ' ';
-                        } else {
-                            interimTranscript += event.results[i][0].transcript;
-                        }
-                    }
-                    
-                    if (finalTranscript) {
-                        // Adicionar ao transcript da seção atual
-                        if (!fullTranscript[currentSection]) {
-                            fullTranscript[currentSection] = '';
-                        }
-                        fullTranscript[currentSection] += finalTranscript;
-                        
-                        // Atualizar visualização
-                        updateTranscriptView();
-                    }
-                    
-                    // Mostrar resultados temporários
-                    if (interimTranscript) {
-                        const currentContent = transcriptElement.innerHTML;
-                        if (currentContent.includes('<em>')) {
-                            transcriptElement.innerHTML = currentContent.replace(/<em>.*?<\/em>/, `<em>${interimTranscript}</em>`);
-                        } else {
-                            transcriptElement.innerHTML += `<em>${interimTranscript}</em>`;
-                        }
-                    }
-                };
+               recognition.onresult = function(event) {
+    let interimTranscript = '';
+    let finalTranscript = '';
+    
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+        } else {
+            interimTranscript += event.results[i][0].transcript;
+        }
+    }
+    
+    if (finalTranscript) {
+        // NOVO: Processar termos médicos e medidas
+        const sexoPaciente = document.getElementById('sexoPaciente')?.value || 'mulheres';
+        finalTranscript = ecocardiogramaSystem.processMeasurementText(finalTranscript, sexoPaciente);
+        
+        // Código original: adicionar ao transcript
+        if (!fullTranscript[currentSection]) {
+            fullTranscript[currentSection] = '';
+        }
+        fullTranscript[currentSection] += ' ' + finalTranscript;
+        
+        // Atualizar a visualização (sua função existente)
+        updateTranscriptView();
+    }
+    
+    // Seu código existente para resultados intermediários...
+};
                 
                 recognition.onerror = function(event) {
                     console.error('Erro:', event.error);
@@ -434,46 +435,90 @@
             return sectionMap[sectionKey] || sectionKey;
         }
 
-        // Visualizar o laudo completo
         function previewLaudo() {
-            const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
-            const patientAge = document.getElementById('patientAge').value || 'Idade';
-            const patientId = document.getElementById('patientId').value || 'ID/Registro';
-            const date = new Date().toLocaleDateString('pt-BR');
-            
-            let laudoHtml = `
-                <div class="text-center mb-4">
-                    <h5>CLÍNICA CARDIOLÓGICA</h5>
-                    <h4>LAUDO DE ECOCARDIOGRAMA</h4>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <strong>Paciente:</strong> ${patientName}<br>
-                        <strong>Idade:</strong> ${patientAge} anos<br>
-                        <strong>ID/Registro:</strong> ${patientId}
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <strong>Data:</strong> ${date}<br>
-                        <strong>Médico(a):</strong> ${doctorName}
-                    </div>
-                </div>
-                <hr>
-            `;
-            
-            // Verificar se há conteúdo em cada seção ou usar o padrão
-            for (const section in templateDefaults) {
-                const sectionName = getSectionDisplayName(section);
-                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
-                    ? fullTranscript[section].trim() 
-                    : templateDefaults[section];
-                
-                laudoHtml += `
-                    <div class="mb-3">
-                        <h6 class="fw-bold">${sectionName}:</h6>
-                        <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
-                    </div>
-                `;
-            }
+    const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+    const patientAge = document.getElementById('idadePaciente')?.value || document.getElementById('patientAge')?.value || 'Idade';
+    const patientSex = document.getElementById('sexoPaciente')?.value === 'homens' ? 'Masculino' : 'Feminino';
+    const patientId = document.getElementById('patientId').value || 'ID/Registro';
+    const date = new Date().toLocaleDateString('pt-BR');
+    
+    let laudoHtml = `
+        <div class="text-center mb-4">
+            <h5>CLÍNICA CARDIOLÓGICA</h5>
+            <h4>LAUDO DE ECOCARDIOGRAMA</h4>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <strong>Paciente:</strong> ${patientName}<br>
+                <strong>Idade:</strong> ${patientAge} anos<br>
+                <strong>Sexo:</strong> ${patientSex}<br>
+                <strong>ID/Registro:</strong> ${patientId}
+            </div>
+            <div class="col-md-6 text-end">
+                <strong>Data:</strong> ${date}<br>
+                <strong>Médico(a):</strong> ${doctorName}
+            </div>
+        </div>
+        <hr>
+    `;
+    
+    // NOVO: Adicionar seção de medidas se houver medidas salvas
+    if (Object.keys(ecocardiogramaSystem.medidasSalvas).length > 0) {
+        laudoHtml += `
+            <h5 class="mt-4">Medidas</h5>
+            ${ecocardiogramaSystem.gerarLaudoMedidas(document.getElementById('sexoPaciente')?.value || 'mulheres')}
+        `;
+        laudoHtml += `<hr>`;
+    }
+    
+    // Seu código existente para as seções
+    for (const section in templateDefaults) {
+        const sectionName = getSectionDisplayName(section);
+        const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+            ? fullTranscript[section].trim() 
+            : templateDefaults[section];
+        
+        laudoHtml += `
+            <div class="mb-3">
+                <h6 class="fw-bold">${sectionName}:</h6>
+                <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
+            </div>
+        `;
+    }
+    
+    // NOVO: Conclusão com sugestões baseadas nas medidas
+    const conclusoes = ecocardiogramaSystem.interpretarResultados();
+    if (conclusoes.length > 0) {
+        laudoHtml += `
+            <div class="mt-4 p-3 bg-light border rounded">
+                <h6 class="fw-bold">Sugestões de Conclusão:</h6>
+                <ul>
+                    ${conclusoes.map(c => `<li>${c}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    // Seu código existente para imagens
+    if (uploadedImages && uploadedImages.length > 0) {
+        // Código para mostrar imagens...
+    }
+    
+    // Seu código existente para assinatura
+    laudoHtml += `
+        <hr class="mt-5">
+        <div class="text-center mt-5 pt-4">
+            <div>____________________________________</div>
+            <div>${doctorName}</div>
+            <div>CRM-XX 12345</div>
+        </div>
+    `;
+    
+    laudoPreview.innerHTML = laudoHtml;
+    
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    previewModal.show();
+}
             
             // Adicionar assinatura
             laudoHtml += `
@@ -504,6 +549,85 @@
             
             bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
         }
+        <!-- Adicionar após o formulário de informações do paciente -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Dados do Paciente</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="sexoPaciente" class="form-label">Sexo</label>
+                        <select id="sexoPaciente" class="form-select">
+                            <option value="mulheres">Feminino</option>
+                            <option value="homens">Masculino</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="idadePaciente" class="form-label">Idade</label>
+                        <input type="number" id="idadePaciente" class="form-control" placeholder="Anos">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="alturaPaciente" class="form-label">Altura</label>
+                        <input type="number" id="alturaPaciente" class="form-control" placeholder="cm">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="pesoPaciente" class="form-label">Peso</label>
+                        <input type="number" id="pesoPaciente" class="form-control" placeholder="kg">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Atalhos para medidas comuns -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Atalhos para Medidas</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text">AE</span>
+                        <input type="number" class="form-control shortcut-measure" data-abbrev="AE" style="width: 70px;">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                    
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text">AO</span>
+                        <input type="number" class="form-control shortcut-measure" data-abbrev="AO" style="width: 70px;">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                    
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text">VED</span>
+                        <input type="number" class="form-control shortcut-measure" data-abbrev="VED" style="width: 70px;">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                    
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text">SIVD</span>
+                        <input type="number" class="form-control shortcut-measure" data-abbrev="SIVD" style="width: 70px;">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                    
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text">PPVED</span>
+                        <input type="number" class="form-control shortcut-measure" data-abbrev="PPVED" style="width: 70px;">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                    
+                    <div class="input-group input-group-sm" style="width: auto;">
+                        <span class="input-group-text">FEVE</span>
+                        <input type="number" class="form-control shortcut-measure" data-abbrev="FEVE" style="width: 70px;">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
         
         // Gerar PDF
         function generatePDF() {
@@ -589,6 +713,34 @@
             // Inicializar
             initializeTemplate();
             setupSpeechRecognition();
+
+            // Event listener para os atalhos de medidas
+document.querySelectorAll('.shortcut-measure').forEach(input => {
+    input.addEventListener('change', function() {
+        const abrev = this.dataset.abbrev;
+        const valor = this.value;
+        if (!abrev || !valor) return;
+        
+        const unidade = this.nextElementSibling.textContent;
+        const sexo = document.getElementById('sexoPaciente')?.value || 'mulheres';
+        
+        // Processar a medida
+        const textoCompleto = `${abrev} ${valor}`;
+        const resultado = ecocardiogramaSystem.processMeasurementText(textoCompleto, sexo);
+        
+        // Adicionar ao transcript da seção atual
+        if (!fullTranscript[currentSection]) {
+            fullTranscript[currentSection] = '';
+        }
+        fullTranscript[currentSection] += ' ' + resultado;
+        
+        // Limpar o input
+        this.value = '';
+        
+        // Atualizar a visualização
+        updateTranscriptView();
+    });
+});
             
             // Botão de gravação
             recordButton.addEventListener('click', toggleRecording);
