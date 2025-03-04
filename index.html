@@ -50,6 +50,9 @@
             background-color: #fff8f8; 
             border-color: #ff9999;
         }
+        .image-upload-container {
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -64,22 +67,84 @@
         </header>
 
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="mb-3">
                     <label for="patientName" class="form-label">Nome do Paciente</label>
                     <input type="text" class="form-control" id="patientName" placeholder="Ex: João Silva">
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="mb-3">
-                    <label for="patientAge" class="form-label">Idade</label>
-                    <input type="number" class="form-control" id="patientAge" placeholder="Ex: 65">
-                </div>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="mb-3">
                     <label for="patientId" class="form-label">ID/Registro</label>
                     <input type="text" class="form-control" id="patientId" placeholder="Ex: 12345">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="mb-3">
+                    <label for="sexoPaciente" class="form-label">Sexo</label>
+                    <select id="sexoPaciente" class="form-select">
+                        <option value="mulheres">Feminino</option>
+                        <option value="homens">Masculino</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="mb-3">
+                    <label for="idadePaciente" class="form-label">Idade</label>
+                    <input type="number" id="idadePaciente" class="form-control" placeholder="Anos">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="mb-3">
+                    <label for="pesoPaciente" class="form-label">Peso (kg)</label>
+                    <input type="number" id="pesoPaciente" class="form-control" placeholder="kg">
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Atalhos para Medidas</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="input-group input-group-sm" style="width: auto;">
+                                <span class="input-group-text">AE</span>
+                                <input type="number" class="form-control shortcut-measure" data-abbrev="AE" style="width: 70px;">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                            
+                            <div class="input-group input-group-sm" style="width: auto;">
+                                <span class="input-group-text">AO</span>
+                                <input type="number" class="form-control shortcut-measure" data-abbrev="AO" style="width: 70px;">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                            
+                            <div class="input-group input-group-sm" style="width: auto;">
+                                <span class="input-group-text">VED</span>
+                                <input type="number" class="form-control shortcut-measure" data-abbrev="VED" style="width: 70px;">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                            
+                            <div class="input-group input-group-sm" style="width: auto;">
+                                <span class="input-group-text">SIVD</span>
+                                <input type="number" class="form-control shortcut-measure" data-abbrev="SIVD" style="width: 70px;">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                            
+                            <div class="input-group input-group-sm" style="width: auto;">
+                                <span class="input-group-text">PPVED</span>
+                                <input type="number" class="form-control shortcut-measure" data-abbrev="PPVED" style="width: 70px;">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                            
+                            <div class="input-group input-group-sm" style="width: auto;">
+                                <span class="input-group-text">FEVE</span>
+                                <input type="number" class="form-control shortcut-measure" data-abbrev="FEVE" style="width: 70px;">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -139,6 +204,20 @@
                             <span class="section-tag badge bg-light text-dark" data-section="atrio_esquerdo">Átrio Esquerdo</span>
                             <span class="section-tag badge bg-light text-dark" data-section="valvula_mitral">Válvula Mitral</span>
                             <span class="section-tag badge bg-light text-dark" data-section="conclusao">Conclusão</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Imagens do Exame</h5>
+                        <div class="image-upload-container">
+                            <input type="file" id="imageUpload" accept="image/*" multiple class="form-control mb-2">
+                            <div id="imagePreviewContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
                         </div>
                     </div>
                 </div>
@@ -224,12 +303,356 @@
         let isRecording = false;
         let currentSection = 'geral';
         let fullTranscript = {};
+        let uploadedImages = [];
         const doctorName = "Médico(a) Responsável";
-        // Adicione após suas variáveis globais atuais (como isRecording, recognition, etc.)
-const ecocardiogramaSystem = {
-    // Todo o código do objeto ecocardiogramaSystem que enviei
-    // ...
-};
+
+        // Sistema de processamento de medidas ecocardiográficas
+        const ecocardiogramaSystem = {
+            // Abreviações organizadas por categoria
+            abreviacoes: {
+                camaras: {
+                    "AE": "Átrio Esquerdo",
+                    "AEV": "Volume do Átrio Esquerdo",
+                    "VE": "Ventrículo Esquerdo",
+                    "VED": "Diâmetro diastólico do Ventrículo Esquerdo",
+                    "VES": "Diâmetro sistólico do Ventrículo Esquerdo",
+                    "SIVD": "Septo Interventricular em diástole",
+                    "PPVED": "Parede Posterior do VE em diástole",
+                    "MASSED": "Massa do VE indexada",
+                    "AD": "Átrio Direito",
+                    "VD": "Ventrículo Direito",
+                    "VDVD": "Via de Entrada do VD"
+                },
+                funcaoVentricular: {
+                    "FEVE": "Fração de Ejeção do VE",
+                    "FE": "Fração de Ejeção",
+                    "VS": "Volume Sistólico",
+                    "DC": "Débito Cardíaco",
+                    "TAPSE": "Excursão Sistólica do Plano Anular Tricúspide",
+                    "FAC": "Variação Fracional da Área do VD",
+                    "S'": "Velocidade Sistólica do Anel Tricúspide",
+                    "GLS": "Strain Longitudinal Global"
+                },
+                valvulas: {
+                    "VM": "Válvula Mitral",
+                    "VAO": "Válvula Aórtica",
+                    "VT": "Válvula Tricúspide",
+                    "VP": "Válvula Pulmonar",
+                    "AVM": "Área da Válvula Mitral",
+                    "AVA": "Área da Válvula Aórtica",
+                    "GTVAO": "Gradiente Transvalvar Aórtico",
+                    "GTVM": "Gradiente Transvalvar Mitral",
+                    "PISA": "Área de Superfície da Isovelocidade Proximal",
+                    "ORE": "Orifício Regurgitante Efetivo",
+                    "VR": "Volume Regurgitante"
+                },
+                grandesVasos: {
+                    "AO": "Aorta (raiz)",
+                    "AAO": "Aorta Ascendente",
+                    "AP": "Artéria Pulmonar",
+                    "PSAP": "Pressão Sistólica da Artéria Pulmonar"
+                },
+                fluxosVelocidades: {
+                    "E": "Onda E mitral",
+                    "A": "Onda A mitral",
+                    "E/A": "Relação E/A",
+                    "TDE": "Tempo de Desaceleração da onda E",
+                    "TRIV": "Tempo de Relaxamento Isovolumétrico",
+                    "E'": "Velocidade diastólica precoce do anel mitral",
+                    "E/E'": "Relação E/E'",
+                    "VAo": "Velocidade Aórtica"
+                }
+            },
+
+            // Valores de referência para cada parâmetro
+            valoresReferencia: {
+                // Câmaras
+                "AE": { min: 30, max: 40, unidade: "mm", descricao: "Diâmetro do Átrio Esquerdo" },
+                "AEV": { min: null, max: 34, unidade: "mL/m²", descricao: "Volume do Átrio Esquerdo indexado" },
+                "VED": { 
+                    homens: { min: 42, max: 59 }, 
+                    mulheres: { min: 39, max: 53 }, 
+                    unidade: "mm", 
+                    descricao: "Diâmetro diastólico do VE" 
+                },
+                "VES": { 
+                    homens: { min: 26, max: 40 }, 
+                    mulheres: { min: 23, max: 35 }, 
+                    unidade: "mm", 
+                    descricao: "Diâmetro sistólico do VE" 
+                },
+                "SIVD": { min: 6, max: 10, unidade: "mm", descricao: "Espessura do septo interventricular" },
+                "PPVED": { min: 6, max: 10, unidade: "mm", descricao: "Espessura da parede posterior do VE" },
+                "MASSED": { 
+                    homens: { min: null, max: 115 }, 
+                    mulheres: { min: null, max: 95 }, 
+                    unidade: "g/m²", 
+                    descricao: "Massa do VE indexada pela superfície corpórea" 
+                },
+                "AD": { min: null, max: 18, unidade: "cm²", descricao: "Área do Átrio Direito" },
+                "VDVD": { min: null, max: 42, unidade: "mm", descricao: "Diâmetro da via de entrada do VD" },
+
+                // Função Ventricular
+                "FEVE": { 
+                    homens: { min: 52, max: 72 }, 
+                    mulheres: { min: 54, max: 74 }, 
+                    unidade: "%", 
+                    descricao: "Fração de ejeção do VE pelo método de Simpson" 
+                },
+                "FE": { min: 55, max: 75, unidade: "%", descricao: "Fração de ejeção" },
+                "VS": { min: 60, max: 100, unidade: "mL", descricao: "Volume sistólico" },
+                "DC": { min: 4, max: 8, unidade: "L/min", descricao: "Débito cardíaco" },
+                "TAPSE": { min: 17, max: null, unidade: "mm", descricao: "Excursão sistólica do plano anular tricúspide" },
+                "FAC": { min: 35, max: null, unidade: "%", descricao: "Variação fracional da área do VD" },
+                "S'": { min: 9.5, max: null, unidade: "cm/s", descricao: "Velocidade sistólica do anel tricúspide" },
+                "GLS": { min: -20, max: -18, unidade: "%", descricao: "Strain longitudinal global", invertido: true },
+
+                // Válvulas
+                "AVM": { min: 4, max: null, unidade: "cm²", descricao: "Área da válvula mitral" },
+                "AVA": { min: 2, max: null, unidade: "cm²", descricao: "Área da válvula aórtica" },
+                "GTVAO": { min: null, max: 10, unidade: "mmHg", descricao: "Gradiente médio transvalvar aórtico" },
+                "GTVM": { min: null, max: 5, unidade: "mmHg", descricao: "Gradiente médio transvalvar mitral" },
+                "ORE-VM": { min: null, max: 0.2, unidade: "cm²", descricao: "Orifício regurgitante efetivo mitral" },
+                "ORE-VAO": { min: null, max: 0.1, unidade: "cm²", descricao: "Orifício regurgitante efetivo aórtico" },
+                "VR-VM": { min: null, max: 30, unidade: "mL", descricao: "Volume regurgitante mitral" },
+                "VR-VAO": { min: null, max: 30, unidade: "mL", descricao: "Volume regurgitante aórtico" },
+
+                // Grandes Vasos
+                "AO": { 
+                    homens: { min: null, max: 37 }, 
+                    mulheres: { min: null, max: 34 }, 
+                    unidade: "mm", 
+                    descricao: "Diâmetro da raiz da aorta" 
+                },
+                "AAO": { min: null, max: 40, unidade: "mm", descricao: "Diâmetro da aorta ascendente" },
+                "AP": { min: null, max: 25, unidade: "mm", descricao: "Diâmetro da artéria pulmonar" },
+                "PSAP": { min: null, max: 30, unidade: "mmHg", descricao: "Pressão sistólica da artéria pulmonar" },
+
+                // Fluxos e Velocidades
+                "E": { min: 0.6, max: 1.3, unidade: "m/s", descricao: "Velocidade de fluxo mitral diastólico precoce" },
+                "A": { min: 0.4, max: 0.9, unidade: "m/s", descricao: "Velocidade de fluxo mitral diastólico tardio" },
+                "E/A": { min: 0.8, max: 2.0, unidade: "", descricao: "Relação E/A" },
+                "TDE": { min: 160, max: 240, unidade: "ms", descricao: "Tempo de desaceleração da onda E" },
+                "TRIV": { min: 70, max: 110, unidade: "ms", descricao: "Tempo de relaxamento isovolumétrico" },
+                "E'": { min: 8, max: null, unidade: "cm/s", descricao: "Velocidade diastólica precoce do anel mitral" },
+                "E/E'": { min: null, max: 14, unidade: "", descricao: "Relação E/E'" },
+                "VAo": { min: null, max: 1.7, unidade: "m/s", descricao: "Velocidade do fluxo aórtico" }
+            },
+
+            // Lista completa de todas as abreviações para fácil referência
+            getAllAbreviacoes: function() {
+                const todas = {};
+                for (const categoria in this.abreviacoes) {
+                    Object.assign(todas, this.abreviacoes[categoria]);
+                }
+                return todas;
+            },
+
+            // Processar texto com abreviações e medidas
+            processMeasurementText: function(text, sexo = 'mulheres') {
+                // Lista completa de abreviações
+                const abrevs = this.getAllAbreviacoes();
+                
+                // Regex para identificar padrões como "AO 37" ou "FEVE 60%" ou "E/A 1.2"
+                const padraoMedida = /\b([A-Z]['°]?(?:\/[A-Z]['°]?)?)\s+([0-9]+(?:\.[0-9]+)?)\s*(%|mm|cm|m\/s|mmHg|cm²|mL)?\b/g;
+                
+                return text.replace(padraoMedida, (match, abrev, valor, unidade) => {
+                    // Verificar se a abreviação é conhecida
+                    if (!abrevs[abrev]) return match;
+                    
+                    const valorNumerico = parseFloat(valor);
+                    const ref = this.valoresReferencia[abrev];
+                    
+                    if (!ref) return match;
+                    
+                    // Determinar unidade correta
+                    const unidadeFinal = unidade || ref.unidade || '';
+                    
+                    // Avaliar se está normal, aumentado ou diminuído
+                    let status = 'normal';
+                    let minRef, maxRef;
+                    
+                    // Verificar se existem valores específicos por sexo
+                    if (ref.homens && ref.mulheres) {
+                        minRef = ref[sexo].min;
+                        maxRef = ref[sexo].max;
+                    } else {
+                        minRef = ref.min;
+                        maxRef = ref.max;
+                    }
+                    
+                    // Alguns parâmetros têm lógica invertida (como GLS, onde mais negativo é melhor)
+                    if (ref.invertido) {
+                        if (valorNumerico > minRef) status = 'acima do normal';
+                        if (valorNumerico < maxRef) status = 'abaixo do normal';
+                    } else {
+                        if (minRef !== null && valorNumerico < minRef) status = 'abaixo do normal';
+                        if (maxRef !== null && valorNumerico > maxRef) status = 'acima do normal';
+                    }
+                    
+                    // Formatar saída
+                    const descricaoCompleta = `${abrevs[abrev]}: ${valor}${unidadeFinal} (${status})`;
+                    
+                    // Também salvar a medida em um objeto global para referência futura
+                    this.salvarMedida(abrev, valorNumerico, unidadeFinal, status);
+                    
+                    return descricaoCompleta;
+                });
+            },
+            
+            // Armazenar as medidas para uso posterior no laudo
+            medidasSalvas: {},
+            
+            salvarMedida: function(abrev, valor, unidade, status) {
+                this.medidasSalvas[abrev] = {
+                    valor: valor,
+                    unidade: unidade,
+                    status: status,
+                    timestamp: new Date()
+                };
+            },
+            
+            // Obter todas as medidas salvas para um laudo formatado
+            getMedidasFormatadas: function() {
+                const medidasPorCategoria = {
+                    camaras: [],
+                    funcaoVentricular: [],
+                    valvulas: [],
+                    grandesVasos: [],
+                    fluxosVelocidades: []
+                };
+                
+                // Agrupar medidas por categoria
+                for (const abrev in this.medidasSalvas) {
+                    for (const categoria in this.abreviacoes) {
+                        if (abrev in this.abreviacoes[categoria]) {
+                            const medida = this.medidasSalvas[abrev];
+                            const nome = this.getAllAbreviacoes()[abrev];
+                            const ref = this.valoresReferencia[abrev];
+                            
+                            medidasPorCategoria[categoria].push({
+                                abrev: abrev,
+                                nome: nome,
+                                valor: medida.valor,
+                                unidade: medida.unidade,
+                                status: medida.status,
+                                referencia: ref
+                            });
+                            break;
+                        }
+                    }
+                }
+                
+                return medidasPorCategoria;
+            },
+            
+            // Gerar parte do laudo com as medidas
+            gerarLaudoMedidas: function(sexo = 'mulheres') {
+                const medidasPorCategoria = this.getMedidasFormatadas();
+                let laudoHtml = '';
+                
+                const categoriaNomes = {
+                    camaras: 'Câmaras Cardíacas',
+                    funcaoVentricular: 'Função Ventricular',
+                    valvulas: 'Válvulas',
+                    grandesVasos: 'Grandes Vasos',
+                    fluxosVelocidades: 'Fluxos e Velocidades'
+                };
+                
+                // Gerar tabelas de medidas por categoria
+                for (const categoria in medidasPorCategoria) {
+                    const medidas = medidasPorCategoria[categoria];
+                    if (medidas.length === 0) continue;
+                    
+                    laudoHtml += `<h6 class="mt-3">${categoriaNomes[categoria]}</h6>`;
+                    laudoHtml += `<table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Parâmetro</th>
+                                <th>Valor</th>
+                                <th>Referência</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                    
+                    medidas.forEach(medida => {
+                        let refTexto = '';
+                        if (medida.referencia) {
+                            if (medida.referencia.homens && medida.referencia.mulheres) {
+                                const refSexo = medida.referencia[sexo];
+                                refTexto = this.formatarReferencia(refSexo.min, refSexo.max, medida.unidade);
+                            } else {
+                                refTexto = this.formatarReferencia(medida.referencia.min, medida.referencia.max, medida.unidade);
+                            }
+                        }
+                        
+                        let classStatus = '';
+                        if (medida.status === 'acima do normal') classStatus = 'text-danger';
+                        if (medida.status === 'abaixo do normal') classStatus = 'text-warning';
+                        
+                        laudoHtml += `<tr>
+                            <td>${medida.nome} (${medida.abrev})</td>
+                            <td class="${classStatus}">${medida.valor} ${medida.unidade}</td>
+                            <td>${refTexto}</td>
+                        </tr>`;
+                    });
+                    
+                    laudoHtml += `</tbody></table>`;
+                }
+                
+                return laudoHtml;
+            },
+            
+            formatarReferencia: function(min, max, unidade) {
+                if (min !== null && max !== null) {
+                    return `${min} - ${max} ${unidade}`;
+                } else if (min !== null) {
+                    return `> ${min} ${unidade}`;
+                } else if (max !== null) {
+                    return `< ${max} ${unidade}`;
+                }
+                return '';
+            },
+            
+            // Interpretar resultados e sugerir conclusões
+            interpretarResultados: function() {
+                const conclusoes = [];
+                const medidas = this.medidasSalvas;
+                
+                // Função cardíaca
+                if (medidas.FEVE && medidas.FEVE.valor < 50) {
+                    conclusoes.push("Disfunção sistólica do ventrículo esquerdo.");
+                }
+                
+                if (medidas["E/E'"] && medidas["E/E'"].valor > 14) {
+                    conclusoes.push("Disfunção diastólica do ventrículo esquerdo.");
+                }
+                
+                // Hipertrofia
+                if (medidas.SIVD && medidas.SIVD.valor > 11) {
+                    conclusoes.push("Hipertrofia septal.");
+                }
+                
+                if (medidas.PPVED && medidas.PPVED.valor > 11) {
+                    conclusoes.push("Hipertrofia da parede posterior do VE.");
+                }
+                
+                // Dilatações
+                if (medidas.AE && medidas.AE.valor > 40) {
+                    conclusoes.push("Aumento do átrio esquerdo.");
+                }
+                
+                if (medidas.VED && medidas.VED.valor > 55) {
+                    conclusoes.push("Dilatação do ventrículo esquerdo.");
+                }
+                
+                if (medidas.AO && medidas.AO.valor > 37) {
+                    conclusoes.push("Dilatação da raiz da aorta.");
+                }
+                
+                return conclusoes;
+            }
+        };
 
         // Modelo padrão com valores default para cada seção
         const templateDefaults = {
@@ -248,19 +671,57 @@ const ecocardiogramaSystem = {
             conclusao: "Ecocardiograma dentro dos padrões de normalidade para idade e sexo."
         };
 
-        // Elementos DOM
-        const transcriptElement = document.getElementById('transcript');
-        const recordButton = document.getElementById('recordButton');
-        const statusIndicator = document.getElementById('statusIndicator');
-        const sectionSelect = document.getElementById('currentSection');
-        const editSectionSelect = document.getElementById('editSectionSelect');
-        const editTranscript = document.getElementById('editTranscript');
-        const applyEdit = document.getElementById('applyEdit');
-        const previewButton = document.getElementById('previewButton');
-        const laudoPreview = document.getElementById('laudoPreview');
-        const generatePdfButton = document.getElementById('generatePdfButton');
-        const exportPdfButton = document.getElementById('exportPdf');
-        const editButton = document.getElementById('editButton');
+        // Função para processar upload de imagens
+        function handleImageUpload(event) {
+            const files = event.target.files;
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // Armazenar a imagem
+                    const imageObj = {
+                        data: e.target.result,
+                        name: file.name,
+                        type: file.type
+                    };
+                    uploadedImages.push(imageObj);
+                    
+                    // Criar preview
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'position-relative';
+                    imgContainer.innerHTML = `
+                        <img src="${e.target.result}" class="img-thumbnail" style="height: 100px;">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" 
+                                data-index="${uploadedImages.length - 1}">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    `;
+                    
+                    // Adicionar botão para remover imagem
+                    imgContainer.querySelector('button').addEventListener('click', function() {
+                        const index = parseInt(this.getAttribute('data-index'));
+                        uploadedImages.splice(index, 1);
+                        previewContainer.removeChild(imgContainer);
+                        // Atualizar índices dos botões restantes
+                        updateImageIndexes();
+                    });
+                    
+                    previewContainer.appendChild(imgContainer);
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Atualizar índices dos botões de remoção
+        function updateImageIndexes() {
+            document.querySelectorAll('#imagePreviewContainer button').forEach((btn, idx) => {
+                btn.setAttribute('data-index', idx);
+            });
+        }
 
         // Inicializar o modelo padrão
         function initializeTemplate() {
@@ -300,35 +761,41 @@ const ecocardiogramaSystem = {
                     isRecording = true;
                 };
                 
-               recognition.onresult = function(event) {
-    let interimTranscript = '';
-    let finalTranscript = '';
-    
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-        } else {
-            interimTranscript += event.results[i][0].transcript;
-        }
-    }
-    
-    if (finalTranscript) {
-        // NOVO: Processar termos médicos e medidas
-        const sexoPaciente = document.getElementById('sexoPaciente')?.value || 'mulheres';
-        finalTranscript = ecocardiogramaSystem.processMeasurementText(finalTranscript, sexoPaciente);
-        
-        // Código original: adicionar ao transcript
-        if (!fullTranscript[currentSection]) {
-            fullTranscript[currentSection] = '';
-        }
-        fullTranscript[currentSection] += ' ' + finalTranscript;
-        
-        // Atualizar a visualização (sua função existente)
-        updateTranscriptView();
-    }
-    
-    // Seu código existente para resultados intermediários...
-};
+                recognition.onresult = function(event) {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    
+                    if (finalTranscript) {
+                        // Processar termos médicos e medidas
+                        const sexoPaciente = document.getElementById('sexoPaciente')?.value || 'mulheres';
+                        finalTranscript = ecocardiogramaSystem.processMeasurementText(finalTranscript, sexoPaciente);
+                        
+                        // Adicionar ao transcript
+                        if (!fullTranscript[currentSection]) {
+                            fullTranscript[currentSection] = '';
+                        }
+                        fullTranscript[currentSection] += ' ' + finalTranscript;
+                        
+                        // Atualizar a visualização
+                        updateTranscriptView();
+                    }
+                    
+                    // Mostrar resultados intermediários
+                    if (interimTranscript) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = `<p><em>${interimTranscript}</em></p>`;
+                        transcriptElement.appendChild(tempDiv);
+                        transcriptElement.scrollTop = transcriptElement.scrollHeight;
+                    }
+                };
                 
                 recognition.onerror = function(event) {
                     console.error('Erro:', event.error);
@@ -435,90 +902,94 @@ const ecocardiogramaSystem = {
             return sectionMap[sectionKey] || sectionKey;
         }
 
+        // Visualizar o laudo completo
         function previewLaudo() {
-    const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
-    const patientAge = document.getElementById('idadePaciente')?.value || document.getElementById('patientAge')?.value || 'Idade';
-    const patientSex = document.getElementById('sexoPaciente')?.value === 'homens' ? 'Masculino' : 'Feminino';
-    const patientId = document.getElementById('patientId').value || 'ID/Registro';
-    const date = new Date().toLocaleDateString('pt-BR');
-    
-    let laudoHtml = `
-        <div class="text-center mb-4">
-            <h5>CLÍNICA CARDIOLÓGICA</h5>
-            <h4>LAUDO DE ECOCARDIOGRAMA</h4>
-        </div>
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <strong>Paciente:</strong> ${patientName}<br>
-                <strong>Idade:</strong> ${patientAge} anos<br>
-                <strong>Sexo:</strong> ${patientSex}<br>
-                <strong>ID/Registro:</strong> ${patientId}
-            </div>
-            <div class="col-md-6 text-end">
-                <strong>Data:</strong> ${date}<br>
-                <strong>Médico(a):</strong> ${doctorName}
-            </div>
-        </div>
-        <hr>
-    `;
-    
-    // NOVO: Adicionar seção de medidas se houver medidas salvas
-    if (Object.keys(ecocardiogramaSystem.medidasSalvas).length > 0) {
-        laudoHtml += `
-            <h5 class="mt-4">Medidas</h5>
-            ${ecocardiogramaSystem.gerarLaudoMedidas(document.getElementById('sexoPaciente')?.value || 'mulheres')}
-        `;
-        laudoHtml += `<hr>`;
-    }
-    
-    // Seu código existente para as seções
-    for (const section in templateDefaults) {
-        const sectionName = getSectionDisplayName(section);
-        const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
-            ? fullTranscript[section].trim() 
-            : templateDefaults[section];
-        
-        laudoHtml += `
-            <div class="mb-3">
-                <h6 class="fw-bold">${sectionName}:</h6>
-                <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
-            </div>
-        `;
-    }
-    
-    // NOVO: Conclusão com sugestões baseadas nas medidas
-    const conclusoes = ecocardiogramaSystem.interpretarResultados();
-    if (conclusoes.length > 0) {
-        laudoHtml += `
-            <div class="mt-4 p-3 bg-light border rounded">
-                <h6 class="fw-bold">Sugestões de Conclusão:</h6>
-                <ul>
-                    ${conclusoes.map(c => `<li>${c}</li>`).join('')}
-                </ul>
-            </div>
-        `;
-    }
-    
-    // Seu código existente para imagens
-    if (uploadedImages && uploadedImages.length > 0) {
-        // Código para mostrar imagens...
-    }
-    
-    // Seu código existente para assinatura
-    laudoHtml += `
-        <hr class="mt-5">
-        <div class="text-center mt-5 pt-4">
-            <div>____________________________________</div>
-            <div>${doctorName}</div>
-            <div>CRM-XX 12345</div>
-        </div>
-    `;
-    
-    laudoPreview.innerHTML = laudoHtml;
-    
-    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-    previewModal.show();
-}
+            const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+            const patientAge = document.getElementById('idadePaciente')?.value || document.getElementById('patientAge')?.value || 'Idade';
+            const patientSex = document.getElementById('sexoPaciente')?.value === 'homens' ? 'Masculino' : 'Feminino';
+            const patientId = document.getElementById('patientId').value || 'ID/Registro';
+            const date = new Date().toLocaleDateString('pt-BR');
+            
+            let laudoHtml = `
+                <div class="text-center mb-4">
+                    <h5>CLÍNICA CARDIOLÓGICA</h5>
+                    <h4>LAUDO DE ECOCARDIOGRAMA</h4>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Paciente:</strong> ${patientName}<br>
+                        <strong>Idade:</strong> ${patientAge} anos<br>
+                        <strong>Sexo:</strong> ${patientSex}<br>
+                        <strong>ID/Registro:</strong> ${patientId}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <strong>Data:</strong> ${date}<br>
+                        <strong>Médico(a):</strong> ${doctorName}
+                    </div>
+                </div>
+                <hr>
+            `;
+            
+            // Adicionar seção de medidas se houver medidas salvas
+            if (Object.keys(ecocardiogramaSystem.medidasSalvas).length > 0) {
+                laudoHtml += `
+                    <h5 class="mt-4">Medidas</h5>
+                    ${ecocardiogramaSystem.gerarLaudoMedidas(document.getElementById('sexoPaciente')?.value || 'mulheres')}
+                `;
+                laudoHtml += `<hr>`;
+            }
+            
+            // Verificar se há conteúdo em cada seção ou usar o padrão
+            for (const section in templateDefaults) {
+                const sectionName = getSectionDisplayName(section);
+                const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
+                    ? fullTranscript[section].trim() 
+                    : templateDefaults[section];
+                
+                laudoHtml += `
+                    <div class="mb-3">
+                        <h6 class="fw-bold">${sectionName}:</h6>
+                        <div class="ps-3">${sectionContent || 'Sem alterações.'}</div>
+                    </div>
+                `;
+            }
+            
+            // Conclusão com sugestões baseadas nas medidas
+            const conclusoes = ecocardiogramaSystem.interpretarResultados();
+            if (conclusoes.length > 0) {
+                laudoHtml += `
+                    <div class="mt-4 p-3 bg-light border rounded">
+                        <h6 class="fw-bold">Sugestões de Conclusão:</h6>
+                        <ul>
+                            ${conclusoes.map(c => `<li>${c}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Adicionar imagens, se houver
+            if (uploadedImages && uploadedImages.length > 0) {
+                laudoHtml += `
+                    <hr>
+                    <h5 class="mt-4">Imagens do Exame</h5>
+                    <div class="row">
+                `;
+                
+                uploadedImages.forEach((img, index) => {
+                    laudoHtml += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <img src="${img.data}" class="card-img-top" alt="Imagem ${index + 1}">
+                                <div class="card-body p-2 text-center">
+                                    <small>Imagem ${index + 1}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                laudoHtml += `</div>`;
+            }
             
             // Adicionar assinatura
             laudoHtml += `
@@ -549,85 +1020,6 @@ const ecocardiogramaSystem = {
             
             bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
         }
-        <!-- Adicionar após o formulário de informações do paciente -->
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Dados do Paciente</h5>
-                <div class="row">
-                    <div class="col-md-3">
-                        <label for="sexoPaciente" class="form-label">Sexo</label>
-                        <select id="sexoPaciente" class="form-select">
-                            <option value="mulheres">Feminino</option>
-                            <option value="homens">Masculino</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="idadePaciente" class="form-label">Idade</label>
-                        <input type="number" id="idadePaciente" class="form-control" placeholder="Anos">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="alturaPaciente" class="form-label">Altura</label>
-                        <input type="number" id="alturaPaciente" class="form-control" placeholder="cm">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="pesoPaciente" class="form-label">Peso</label>
-                        <input type="number" id="pesoPaciente" class="form-control" placeholder="kg">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Atalhos para medidas comuns -->
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Atalhos para Medidas</h5>
-                <div class="d-flex flex-wrap gap-2">
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text">AE</span>
-                        <input type="number" class="form-control shortcut-measure" data-abbrev="AE" style="width: 70px;">
-                        <span class="input-group-text">mm</span>
-                    </div>
-                    
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text">AO</span>
-                        <input type="number" class="form-control shortcut-measure" data-abbrev="AO" style="width: 70px;">
-                        <span class="input-group-text">mm</span>
-                    </div>
-                    
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text">VED</span>
-                        <input type="number" class="form-control shortcut-measure" data-abbrev="VED" style="width: 70px;">
-                        <span class="input-group-text">mm</span>
-                    </div>
-                    
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text">SIVD</span>
-                        <input type="number" class="form-control shortcut-measure" data-abbrev="SIVD" style="width: 70px;">
-                        <span class="input-group-text">mm</span>
-                    </div>
-                    
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text">PPVED</span>
-                        <input type="number" class="form-control shortcut-measure" data-abbrev="PPVED" style="width: 70px;">
-                        <span class="input-group-text">mm</span>
-                    </div>
-                    
-                    <div class="input-group input-group-sm" style="width: auto;">
-                        <span class="input-group-text">FEVE</span>
-                        <input type="number" class="form-control shortcut-measure" data-abbrev="FEVE" style="width: 70px;">
-                        <span class="input-group-text">%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
         
         // Gerar PDF
         function generatePDF() {
@@ -635,7 +1027,8 @@ const ecocardiogramaSystem = {
                 const { jsPDF } = window.jspdf;
                 
                 const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
-                const patientAge = document.getElementById('patientAge').value || 'Idade';
+                const patientAge = document.getElementById('idadePaciente')?.value || document.getElementById('patientAge')?.value || 'Idade';
+                const patientSex = document.getElementById('sexoPaciente')?.value === 'homens' ? 'Masculino' : 'Feminino';
                 const patientId = document.getElementById('patientId').value || 'ID/Registro';
                 const date = new Date().toLocaleDateString('pt-BR');
                 
@@ -650,16 +1043,77 @@ const ecocardiogramaSystem = {
                 doc.setFontSize(12);
                 doc.text(`Paciente: ${patientName}`, 20, 40);
                 doc.text(`Idade: ${patientAge} anos`, 20, 50);
-                doc.text(`ID/Registro: ${patientId}`, 20, 60);
+                doc.text(`Sexo: ${patientSex}`, 20, 60);
+                doc.text(`ID/Registro: ${patientId}`, 20, 70);
                 doc.text(`Data: ${date}`, 140, 40);
                 doc.text(`Médico: ${doctorName}`, 140, 50);
                 
                 // Linha divisória
-                doc.line(20, 70, 190, 70);
+                doc.line(20, 80, 190, 80);
+                
+                // Ponto inicial para o conteúdo
+                let yPos = 90;
+                
+                // Adicionar medidas se existirem
+                if (Object.keys(ecocardiogramaSystem.medidasSalvas).length > 0) {
+                    // Implementar uma versão simplificada das medidas para o PDF
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Medidas', 20, yPos);
+                    doc.setFont(undefined, 'normal');
+                    doc.setFontSize(12);
+                    
+                    yPos += 10;
+                    
+                    // Obter categorias com medidas
+                    const medidasPorCategoria = ecocardiogramaSystem.getMedidasFormatadas();
+                    
+                    const categoriaNomes = {
+                        camaras: 'Câmaras Cardíacas',
+                        funcaoVentricular: 'Função Ventricular',
+                        valvulas: 'Válvulas',
+                        grandesVasos: 'Grandes Vasos',
+                        fluxosVelocidades: 'Fluxos e Velocidades'
+                    };
+                    
+                    // Adicionar cada categoria de medidas
+                    for (const categoria in medidasPorCategoria) {
+                        const medidas = medidasPorCategoria[categoria];
+                        if (medidas.length === 0) continue;
+                        
+                        // Verificar se precisa nova página
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        
+                        doc.setFont(undefined, 'bold');
+                        doc.text(categoriaNomes[categoria], 20, yPos);
+                        doc.setFont(undefined, 'normal');
+                        
+                        yPos += 8;
+                        
+                        // Listar medidas
+                        medidas.forEach(medida => {
+                            const texto = `${medida.nome}: ${medida.valor} ${medida.unidade}`;
+                            doc.text(texto, 25, yPos);
+                            yPos += 7;
+                            
+                            if (yPos > 270) {
+                                doc.addPage();
+                                yPos = 20;
+                            }
+                        });
+                        
+                        yPos += 5;
+                    }
+                    
+                    // Adicionar separador
+                    doc.line(20, yPos, 190, yPos);
+                    yPos += 10;
+                }
                 
                 // Adicionar cada seção do laudo
-                let yPos = 80;
-                
                 for (const section in templateDefaults) {
                     const sectionName = getSectionDisplayName(section);
                     const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
@@ -685,17 +1139,69 @@ const ecocardiogramaSystem = {
                     yPos += textLines.length * 7 + 7;
                 }
                 
-                // Adicionar assinatura
-                if (yPos > 230) {
-                    doc.addPage();
-                    yPos = 40;
-                } else {
-                    yPos += 20;
+                // Adicionar conclusões automáticas
+                const conclusoes = ecocardiogramaSystem.interpretarResultados();
+                if (conclusoes.length > 0) {
+                    if (yPos > 230) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Sugestões de Conclusão:', 20, yPos);
+                    doc.setFont(undefined, 'normal');
+                    
+                    yPos += 10;
+                    
+                    conclusoes.forEach(conclusao => {
+                        // Quebrar texto em linhas
+                        const conclusaoLines = doc.splitTextToSize(`• ${conclusao}`, 170);
+                        doc.text(conclusaoLines, 20, yPos);
+                        yPos += conclusaoLines.length * 7 + 3;
+                        
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                    });
                 }
                 
-                doc.text('____________________________________', 105, yPos, { align: 'center' });
-                doc.text(doctorName, 105, yPos + 10, { align: 'center' });
-                doc.text('CRM-XX 12345', 105, yPos + 20, { align: 'center' });
+                // Adicionar imagens em páginas separadas se houver
+                if (uploadedImages && uploadedImages.length > 0) {
+                    doc.addPage();
+                    yPos = 20;
+                    
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Imagens do Exame', 105, yPos, { align: 'center' });
+                    doc.setFont(undefined, 'normal');
+                    doc.setFontSize(12);
+                    
+                    yPos += 20;
+                    
+                    uploadedImages.forEach((img, index) => {
+                        if (yPos > 200) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        
+                        try {
+                            // Adicionar a imagem (width: 170, height: proporcional ou máximo 100)
+                            doc.addImage(img.data, 'JPEG', 20, yPos, 170, 100);
+                            yPos += 110;
+                            doc.text(`Imagem ${index + 1}`, 105, yPos, { align: 'center' });
+                            yPos += 20;
+                        } catch (e) {
+                            console.error('Erro ao adicionar imagem ao PDF:', e);
+                        }
+                    });
+                }
+                
+                // Adicionar assinatura
+                doc.addPage();
+                doc.text('____________________________________', 105, 140, { align: 'center' });
+                doc.text(doctorName, 105, 150, { align: 'center' });
+                doc.text('CRM-XX 12345', 105, 160, { align: 'center' });
                 
                 // Salvar o PDF
                 const filename = `Laudo_${patientName.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`;
@@ -713,34 +1219,6 @@ const ecocardiogramaSystem = {
             // Inicializar
             initializeTemplate();
             setupSpeechRecognition();
-
-            // Event listener para os atalhos de medidas
-document.querySelectorAll('.shortcut-measure').forEach(input => {
-    input.addEventListener('change', function() {
-        const abrev = this.dataset.abbrev;
-        const valor = this.value;
-        if (!abrev || !valor) return;
-        
-        const unidade = this.nextElementSibling.textContent;
-        const sexo = document.getElementById('sexoPaciente')?.value || 'mulheres';
-        
-        // Processar a medida
-        const textoCompleto = `${abrev} ${valor}`;
-        const resultado = ecocardiogramaSystem.processMeasurementText(textoCompleto, sexo);
-        
-        // Adicionar ao transcript da seção atual
-        if (!fullTranscript[currentSection]) {
-            fullTranscript[currentSection] = '';
-        }
-        fullTranscript[currentSection] += ' ' + resultado;
-        
-        // Limpar o input
-        this.value = '';
-        
-        // Atualizar a visualização
-        updateTranscriptView();
-    });
-});
             
             // Botão de gravação
             recordButton.addEventListener('click', toggleRecording);
@@ -760,10 +1238,61 @@ document.querySelectorAll('.shortcut-measure').forEach(input => {
                 });
             });
             
+            // Upload de imagens
+            document.getElementById('imageUpload')?.addEventListener('change', handleImageUpload);
+            
+            // Event listener para os atalhos de medidas
+            document.querySelectorAll('.shortcut-measure')?.forEach(input => {
+                input.addEventListener('change', function() {
+                    const abrev = this.dataset.abbrev;
+                    const valor = this.value;
+                    if (!abrev || !valor) return;
+                    
+                    const unidade = this.nextElementSibling.textContent;
+                    const sexo = document.getElementById('sexoPaciente')?.value || 'mulheres';
+                    
+                    // Processar a medida
+                    const textoCompleto = `${abrev} ${valor}`;
+                    const resultado = ecocardiogramaSystem.processMeasurementText(textoCompleto, sexo);
+                    
+                    // Adicionar ao transcript da seção atual
+                    if (!fullTranscript[currentSection]) {
+                        fullTranscript[currentSection] = '';
+                    }
+                    fullTranscript[currentSection] += ' ' + resultado;
+                    
+                    // Limpar o input
+                    this.value = '';
+                    
+                    // Atualizar a visualização
+                    updateTranscriptView();
+                });
+            });
+            
+            // Atualizar quando o sexo muda
+            document.getElementById('sexoPaciente')?.addEventListener('change', function() {
+                // Reprocessar todas as medidas salvas com o novo sexo
+                const medidas = {...ecocardiogramaSystem.medidasSalvas}; // cópia para não modificar durante a iteração
+                ecocardiogramaSystem.medidasSalvas = {}; // reset
+                
+                const sexo = this.value;
+                for (const abrev in medidas) {
+                    const medida = medidas[abrev];
+                    // Reprocessar a medida
+                    const textoCompleto = `${abrev} ${medida.valor}`;
+                    ecocardiogramaSystem.processMeasurementText(textoCompleto, sexo);
+                }
+                
+                // Atualizar visualização se o laudo estiver aberto
+                if (document.getElementById('previewModal').classList.contains('show')) {
+                    previewLaudo();
+                }
+            });
+            
             // Botões de ação
             previewButton.addEventListener('click', previewLaudo);
             generatePdfButton.addEventListener('click', generatePDF);
-            exportPdfButton.addEventListener('click', generatePDF);
+            exportPdfButton?.addEventListener('click', generatePDF);
             
             // Edição
             editButton.addEventListener('click', function() {
