@@ -519,6 +519,199 @@ function calculateBodySurface() {
             const patientAge = document.getElementById('patientAge').value || 'Idade';
             const patientId = document.getElementById('patientId').value || 'ID/Registro';
             const date = new Date().toLocaleDateString('pt-BR');
+            function previewLaudo() {
+    const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+    const patientAge = document.getElementById('patientAge').value || '';
+    const patientSex = document.getElementById('patientSex').value || 'M';
+    const patientId = document.getElementById('patientId').value || '';
+    const patientAddress = document.getElementById('patientAddress').value || '';
+    const patientCity = document.getElementById('patientCity').value || '';
+    const reqDoctor = document.getElementById('reqDoctor').value || '';
+    const patientCPF = document.getElementById('patientCPF').value || '';
+    const patientRG = document.getElementById('patientRG').value || '';
+    const patientPhone = document.getElementById('patientPhone').value || '';
+    const patientInsurance = document.getElementById('patientInsurance').value || '';
+    const bodySurface = calculateBodySurface() || '';
+    const date = new Date().toLocaleDateString('pt-BR');
+    
+    // Dados das medidas (serão implementadas para pegar dinamicamente)
+    const measures = {
+        "diamDiastFinalVE": { value: "4,1", range: "4,2 a 5,8 cm" },
+        "diamSistFinalVE": { value: "2,8", range: "2,3 a 3,9 cm" },
+        "diamAtrioE": { value: "3,3", range: "1,8 a 4,0 cm" },
+        "diamAorta": { value: "3,5", range: "2,0 a 3,7 cm" },
+        "diamVD": { value: "", range: "1,9 a 3,5 cm" },
+        "diamViaSaidaVE": { value: "", range: "1,9 a 2,1 cm" },
+        "encurtamentoSistolico": { value: "31,7", range: "26 a 42" },
+        "debitoCardiaco": { value: "", range: "l/m" },
+        "espessuraDiastSepto": { value: "0,8", range: "0,7 a 1,1 cm" },
+        "espessuraDiastPPost": { value: "0,8", range: "0,7 a 1,1 cm" },
+        "fracaoEjecaoTeich": { value: "60,2", range: "52 a 72%" },
+        "fracaoEjecaoSimp": { value: "", range: "%" },
+        "massaVE": { value: "97,3", range: "até 276g" },
+        "massaVESC": { value: "49,4", range: "g/m2" },
+        "volDiastFinalVE": { value: "74,2", range: "62 a 150 ml" },
+        "volDiastFinalMassaVE": { value: "0,8", range: "" },
+        "volSistFinalVE": { value: "29,6", range: "25 a 66ml" },
+        "tempoVelocidadeIntegrada": { value: "", range: "" },
+        "velMaxFluxoAortico": { value: "137.0", range: "60 a 120 cm/s" }
+    };
+    
+    // Comentários gerais (usar texto da seção "geral" ou texto padrão)
+    const comentariosGerais = (fullTranscript['geral'] && fullTranscript['geral'].trim()) 
+        ? fullTranscript['geral'].trim() 
+        : "Exame de boa qualidade técnica. Ritmo Regular.";
+    
+    // Conclusões (usar texto da seção "conclusao" ou texto padrão)
+    const conclusoes = (fullTranscript['conclusao'] && fullTranscript['conclusao'].trim()) 
+        ? fullTranscript['conclusao'].trim() 
+        : "Ecocardiograma normal para idade e biotipo.";
+    
+    let laudoHtml = `
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h4 class="text-center mb-3">ECOCARDIOGRAMA TRANSTORÁCICO</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Paciente:</strong> ${patientName}<br>
+                        <strong>Idade:</strong> ${patientAge} anos<br>
+                        <strong>Sexo:</strong> ${patientSex}<br>
+                        <strong>Superfície corporal:</strong> ${bodySurface} m²<br>
+                        <strong>Endereço:</strong> ${patientAddress}<br>
+                        <strong>Cidade:</strong> ${patientCity}<br>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Data:</strong> ${date}<br>
+                        <strong>Médico Solicitante:</strong> ${reqDoctor}<br>
+                        <strong>CPF:</strong> ${patientCPF}<br>
+                        <strong>RG:</strong> ${patientRG}<br>
+                        <strong>Telefone:</strong> ${patientPhone}<br>
+                        <strong>Convênio:</strong> ${patientInsurance}<br>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h5 class="text-center mb-3">LAUDO RESUMIDO</h5>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Comentários Gerais</strong>
+            </div>
+            <div class="card-body">
+                ${comentariosGerais}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Medidas - Funções</strong>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        <tr>
+                            <td>Diâmetro Diast. Final VE (${measures.diamDiastFinalVE.range}):</td>
+                            <td class="text-center">${measures.diamDiastFinalVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Diâmetro Sistólico Final VE (${measures.diamSistFinalVE.range}):</td>
+                            <td class="text-center">${measures.diamSistFinalVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Diâmetro do Átrio E (${measures.diamAtrioE.range}):</td>
+                            <td class="text-center">${measures.diamAtrioE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Diâmetro da Aorta (${measures.diamAorta.range}):</td>
+                            <td class="text-center">${measures.diamAorta.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Diâmetro do VD (${measures.diamVD.range}):</td>
+                            <td class="text-center">${measures.diamVD.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Diâmetro da Via Saída VE (${measures.diamViaSaidaVE.range}):</td>
+                            <td class="text-center">${measures.diamViaSaidaVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>% Encurtamento Sistólico (${measures.encurtamentoSistolico.range}):</td>
+                            <td class="text-center">${measures.encurtamentoSistolico.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Débito Cardíaco (${measures.debitoCardiaco.range}):</td>
+                            <td class="text-center">${measures.debitoCardiaco.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Espessura Diast. do Septo (${measures.espessuraDiastSepto.range}):</td>
+                            <td class="text-center">${measures.espessuraDiastSepto.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Espessura Diast. da P. Post (${measures.espessuraDiastPPost.range}):</td>
+                            <td class="text-center">${measures.espessuraDiastPPost.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Fração de Ejeção (Teichholz)(${measures.fracaoEjecaoTeich.range}):</td>
+                            <td class="text-center">${measures.fracaoEjecaoTeich.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Fração de Ejeção (Simpson)(${measures.fracaoEjecaoSimp.range}):</td>
+                            <td class="text-center">${measures.fracaoEjecaoSimp.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Massa do VE (${measures.massaVE.range}):</td>
+                            <td class="text-center">${measures.massaVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Massa do VE / SC (${measures.massaVESC.range}):</td>
+                            <td class="text-center">${measures.massaVESC.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Vol. Diást. Final do VE (${measures.volDiastFinalVE.range}):</td>
+                            <td class="text-center">${measures.volDiastFinalVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Vol. Diást. Final / Massa VE:</td>
+                            <td class="text-center">${measures.volDiastFinalMassaVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Vol. Sistólico Final do VE (${measures.volSistFinalVE.range}):</td>
+                            <td class="text-center">${measures.volSistFinalVE.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Tempo de Velocidade Integrada:</td>
+                            <td class="text-center">${measures.tempoVelocidadeIntegrada.value}</td>
+                        </tr>
+                        <tr>
+                            <td>Vel. Máx. Fluxo Aórtico (${measures.velMaxFluxoAortico.range}):</td>
+                            <td class="text-center">${measures.velMaxFluxoAortico.value}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Conclusões</strong>
+            </div>
+            <div class="card-body">
+                ${conclusoes}
+            </div>
+        </div>
+        
+        <div class="text-center mt-5 pt-4">
+            <div>____________________________________</div>
+            <div>Dra. Maria Patricia S. Taguchi Tozato</div>
+            <div>CRM: 25863-PR</div>
+        </div>
+    `;
+    
+    laudoPreview.innerHTML = laudoHtml;
+    
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    previewModal.show();
+}
             
             let laudoHtml = `
                 <div class="text-center mb-4">
