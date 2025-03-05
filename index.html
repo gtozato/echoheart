@@ -777,85 +777,245 @@ function calculateBodySurface() {
             bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
         }
         
-        // Gerar PDF
         function generatePDF() {
-            try {
-                const { jsPDF } = window.jspdf;
-                
-                const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
-                const patientAge = document.getElementById('patientAge').value || 'Idade';
-                const patientId = document.getElementById('patientId').value || 'ID/Registro';
-                const date = new Date().toLocaleDateString('pt-BR');
-                
-                // Criar novo documento PDF
-                const doc = new jsPDF();
-                
-                // Adicionar cabeçalho
-                doc.setFontSize(18);
-                doc.text('LAUDO DE ECOCARDIOGRAMA', 105, 20, { align: 'center' });
-                
-                // Adicionar info do paciente
-                doc.setFontSize(12);
-                doc.text(`Paciente: ${patientName}`, 20, 40);
-                doc.text(`Idade: ${patientAge} anos`, 20, 50);
-                doc.text(`ID/Registro: ${patientId}`, 20, 60);
-                doc.text(`Data: ${date}`, 140, 40);
-                doc.text(`Médico: ${doctorName}`, 140, 50);
-                
-                // Linha divisória
-                doc.line(20, 70, 190, 70);
-                
-                // Adicionar cada seção do laudo
-                let yPos = 80;
-                
-                for (const section in templateDefaults) {
-                    const sectionName = getSectionDisplayName(section);
-                    const sectionContent = fullTranscript[section] && fullTranscript[section].trim() 
-                        ? fullTranscript[section].trim() 
-                        : templateDefaults[section];
-                    
-                    // Verificar se precisa de nova página
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${sectionName}:`, 20, yPos);
-                    yPos += 7;
-                    
-                    doc.setFont(undefined, 'normal');
-                    
-                    // Quebrar texto em linhas
-                    const textLines = doc.splitTextToSize(sectionContent, 170);
-                    doc.text(textLines, 20, yPos);
-                    
-                    yPos += textLines.length * 7 + 7;
-                }
-                
-                // Adicionar assinatura
-                if (yPos > 230) {
-                    doc.addPage();
-                    yPos = 40;
-                } else {
-                    yPos += 20;
-                }
-                
-                doc.text('____________________________________', 105, yPos, { align: 'center' });
-                doc.text(doctorName, 105, yPos + 10, { align: 'center' });
-                doc.text('CRM-XX 12345', 105, yPos + 20, { align: 'center' });
-                
-                // Salvar o PDF
-                const filename = `Laudo_${patientName.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`;
-                doc.save(filename);
-                
-                alert('PDF gerado com sucesso!');
-            } catch (error) {
-                console.error('Erro ao gerar PDF:', error);
-                alert('Ocorreu um erro ao gerar o PDF. Verifique o console para detalhes.');
-            }
+    try {
+        const { jsPDF } = window.jspdf;
+        
+        // Dados do paciente
+        const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
+        const patientAge = document.getElementById('patientAge').value || '';
+        const patientSex = document.getElementById('patientSex').value || 'M';
+        const patientId = document.getElementById('patientId').value || '';
+        const patientAddress = document.getElementById('patientAddress').value || '';
+        const patientCity = document.getElementById('patientCity').value || '';
+        const reqDoctor = document.getElementById('reqDoctor').value || '';
+        const patientCPF = document.getElementById('patientCPF').value || '';
+        const patientRG = document.getElementById('patientRG').value || '';
+        const patientPhone = document.getElementById('patientPhone').value || '';
+        const patientInsurance = document.getElementById('patientInsurance').value || '';
+        const bodySurface = calculateBodySurface() || '';
+        const date = new Date().toLocaleDateString('pt-BR');
+        
+        // Dados das medidas (serão implementadas para pegar dinamicamente)
+        const measures = {
+            "diamDiastFinalVE": { value: "4,1", range: "4,2 a 5,8 cm" },
+            "diamSistFinalVE": { value: "2,8", range: "2,3 a 3,9 cm" },
+            "diamAtrioE": { value: "3,3", range: "1,8 a 4,0 cm" },
+            "diamAorta": { value: "3,5", range: "2,0 a 3,7 cm" },
+            "diamVD": { value: "", range: "1,9 a 3,5 cm" },
+            "diamViaSaidaVE": { value: "", range: "1,9 a 2,1 cm" },
+            "encurtamentoSistolico": { value: "31,7", range: "26 a 42" },
+            "debitoCardiaco": { value: "", range: "l/m" },
+            "espessuraDiastSepto": { value: "0,8", range: "0,7 a 1,1 cm" },
+            "espessuraDiastPPost": { value: "0,8", range: "0,7 a 1,1 cm" },
+            "fracaoEjecaoTeich": { value: "60,2", range: "52 a 72%" },
+            "fracaoEjecaoSimp": { value: "", range: "%" },
+            "massaVE": { value: "97,3", range: "até 276g" },
+            "massaVESC": { value: "49,4", range: "g/m2" },
+            "volDiastFinalVE": { value: "74,2", range: "62 a 150 ml" },
+            "volDiastFinalMassaVE": { value: "0,8", range: "" },
+            "volSistFinalVE": { value: "29,6", range: "25 a 66ml" },
+            "tempoVelocidadeIntegrada": { value: "", range: "" },
+            "velMaxFluxoAortico": { value: "137.0", range: "60 a 120 cm/s" }
+        };
+        
+        // Comentários gerais (usar texto da seção "geral" ou texto padrão)
+        const comentariosGerais = (fullTranscript['geral'] && fullTranscript['geral'].trim()) 
+            ? fullTranscript['geral'].trim() 
+            : "Exame de boa qualidade técnica. Ritmo Regular.";
+        
+        // Conclusões (usar texto da seção "conclusao" ou texto padrão)
+        const conclusoes = (fullTranscript['conclusao'] && fullTranscript['conclusao'].trim()) 
+            ? fullTranscript['conclusao'].trim() 
+            : "Ecocardiograma normal para idade e biotipo.";
+        
+        // Criar novo documento PDF
+        const doc = new jsPDF();
+        
+        // Configurações de fonte e tamanho
+        doc.setFont("helvetica");
+        doc.setFontSize(16);
+        
+        // Título
+        doc.text("ECOCARDIOGRAMA TRANSTORÁCICO", 105, 15, { align: "center" });
+        
+        // Informações do paciente - Coluna esquerda
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Paciente:", 20, 30);
+        doc.text("Idade:", 20, 37);
+        doc.text("Sexo:", 20, 44);
+        doc.text("Superfície corporal:", 20, 51);
+        doc.text("Endereço:", 20, 58);
+        doc.text("Cidade:", 20, 65);
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(patientName, 55, 30);
+        doc.text(patientAge + " anos", 55, 37);
+        doc.text(patientSex, 55, 44);
+        doc.text(bodySurface + " m²", 55, 51);
+        doc.text(patientAddress, 55, 58);
+        doc.text(patientCity, 55, 65);
+        
+        // Informações do paciente - Coluna direita
+        doc.setFont("helvetica", "bold");
+        doc.text("Data:", 120, 30);
+        doc.text("Médico Solicitante:", 120, 37);
+        doc.text("CPF:", 120, 44);
+        doc.text("RG:", 120, 51);
+        doc.text("Telefone:", 120, 58);
+        doc.text("Convênio:", 120, 65);
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(date, 155, 30);
+        doc.text(reqDoctor, 155, 37);
+        doc.text(patientCPF, 155, 44);
+        doc.text(patientRG, 155, 51);
+        doc.text(patientPhone, 155, 58);
+        doc.text(patientInsurance, 155, 65);
+        
+        // Linha separadora
+        doc.setLineWidth(0.5);
+        doc.line(20, 70, 190, 70);
+        
+        // Laudo resumido
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("LAUDO RESUMIDO", 105, 80, { align: "center" });
+        
+        // Comentários Gerais
+        doc.setFontSize(12);
+        doc.text("Comentários Gerais", 20, 90);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        
+        // Quebrar texto em linhas
+        const comentariosLines = doc.splitTextToSize(comentariosGerais, 170);
+        doc.text(comentariosLines, 20, 98);
+        
+        // Posição Y após comentários
+        let yPos = 100 + (comentariosLines.length * 5);
+        
+        // Tabela de Medidas - Funções
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Medidas - Funções", 20, yPos);
+        yPos += 8;
+        
+        // Desenhar tabela de medidas
+        const tableRows = [];
+        
+        tableRows.push(["Diâmetro Diast. Final VE (" + measures.diamDiastFinalVE.range + "):", measures.diamDiastFinalVE.value]);
+        tableRows.push(["Diâmetro Sistólico Final VE (" + measures.diamSistFinalVE.range + "):", measures.diamSistFinalVE.value]);
+        tableRows.push(["Diâmetro do Átrio E (" + measures.diamAtrioE.range + "):", measures.diamAtrioE.value]);
+        tableRows.push(["Diâmetro da Aorta (" + measures.diamAorta.range + "):", measures.diamAorta.value]);
+        tableRows.push(["Diâmetro do VD (" + measures.diamVD.range + "):", measures.diamVD.value]);
+        tableRows.push(["Diâmetro da Via Saída VE (" + measures.diamViaSaidaVE.range + "):", measures.diamViaSaidaVE.value]);
+        tableRows.push(["% Encurtamento Sistólico (" + measures.encurtamentoSistolico.range + "):", measures.encurtamentoSistolico.value]);
+        tableRows.push(["Débito Cardíaco (" + measures.debitoCardiaco.range + "):", measures.debitoCardiaco.value]);
+        tableRows.push(["Espessura Diast. do Septo (" + measures.espessuraDiastSepto.range + "):", measures.espessuraDiastSepto.value]);
+        tableRows.push(["Espessura Diast. da P. Post (" + measures.espessuraDiastPPost.range + "):", measures.espessuraDiastPPost.value]);
+        
+        // Verificar se precisa adicionar nova página para tabela
+        if (yPos > 220) {
+            doc.addPage();
+            yPos = 20;
         }
-
+        
+        // Desenhar primeira parte da tabela
+        doc.autoTable({
+            startY: yPos,
+            head: [],
+            body: tableRows,
+            theme: 'plain',
+            styles: {
+                fontSize: 9,
+                cellPadding: 2
+            },
+            columnStyles: {
+                0: { cellWidth: 120 },
+                1: { cellWidth: 30, halign: 'center' }
+            }
+        });
+        
+        // Continuar tabela com o restante das medidas
+        yPos = doc.lastAutoTable.finalY + 5;
+        
+        // Verificar se precisa adicionar nova página
+        if (yPos > 220) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        const tableRows2 = [];
+        tableRows2.push(["Fração de Ejeção (Teichholz)(" + measures.fracaoEjecaoTeich.range + "):", measures.fracaoEjecaoTeich.value]);
+        tableRows2.push(["Fração de Ejeção (Simpson)(" + measures.fracaoEjecaoSimp.range + "):", measures.fracaoEjecaoSimp.value]);
+        tableRows2.push(["Massa do VE (" + measures.massaVE.range + "):", measures.massaVE.value]);
+        tableRows2.push(["Massa do VE / SC (" + measures.massaVESC.range + "):", measures.massaVESC.value]);
+        tableRows2.push(["Vol. Diást. Final do VE (" + measures.volDiastFinalVE.range + "):", measures.volDiastFinalVE.value]);
+        tableRows2.push(["Vol. Diást. Final / Massa VE:", measures.volDiastFinalMassaVE.value]);
+        tableRows2.push(["Vol. Sistólico Final do VE (" + measures.volSistFinalVE.range + "):", measures.volSistFinalVE.value]);
+        tableRows2.push(["Tempo de Velocidade Integrada:", measures.tempoVelocidadeIntegrada.value]);
+        tableRows2.push(["Vel. Máx. Fluxo Aórtico (" + measures.velMaxFluxoAortico.range + "):", measures.velMaxFluxoAortico.value]);
+        
+        doc.autoTable({
+            startY: yPos,
+            head: [],
+            body: tableRows2,
+            theme: 'plain',
+            styles: {
+                fontSize: 9,
+                cellPadding: 2
+            },
+            columnStyles: {
+                0: { cellWidth: 120 },
+                1: { cellWidth: 30, halign: 'center' }
+            }
+        });
+        
+        // Conclusões
+        yPos = doc.lastAutoTable.finalY + 10;
+        
+        // Verificar se precisa adicionar nova página
+        if (yPos > 220) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Conclusões", 20, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        
+        // Quebrar texto em linhas
+        const conclusoesLines = doc.splitTextToSize(conclusoes, 170);
+        doc.text(conclusoesLines, 20, yPos + 8);
+        
+        // Assinatura
+        yPos = yPos + 8 + (conclusoesLines.length * 5) + 20;
+        
+        // Verificar se precisa adicionar nova página
+        if (yPos > 240) {
+            doc.addPage();
+            yPos = 30;
+        }
+        
+        doc.setFont("helvetica", "normal");
+        doc.text("____________________________________", 105, yPos, { align: "center" });
+        doc.text("Dra. Maria Patricia S. Taguchi Tozato", 105, yPos + 10, { align: "center" });
+        doc.text("CRM: 25863-PR", 105, yPos + 17, { align: "center" });
+        
+        // Salvar o PDF
+        const filename = `Laudo_${patientName.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`;
+        doc.save(filename);
+        
+        alert('PDF gerado com sucesso!');
+    } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Ocorreu um erro ao gerar o PDF. Verifique o console para detalhes.');
+    }
+}
         // Event Listeners
         document.addEventListener('DOMContentLoaded', function() {
             // Inicializar
