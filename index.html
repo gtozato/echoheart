@@ -501,6 +501,18 @@
             return sectionMap[sectionKey] || sectionKey;
         }
 
+        // Calcular superfície corporal usando a fórmula de Mosteller
+function calculateBodySurface() {
+    const height = parseFloat(document.getElementById('patientHeight').value) || 0;
+    const weight = parseFloat(document.getElementById('patientWeight').value) || 0;
+    
+    if (height > 0 && weight > 0) {
+        // Fórmula de Mosteller: SC (m²) = √[(altura em cm × peso em kg)/3600]
+        return Math.sqrt((height * weight) / 3600).toFixed(2);
+    }
+    return "";
+}
+
         // Visualizar o laudo completo
         function previewLaudo() {
             const patientName = document.getElementById('patientName').value || 'Nome do Paciente';
